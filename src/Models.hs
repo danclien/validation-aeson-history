@@ -29,13 +29,13 @@ instance FromJSON (V Child) where
                           name (c <> JsonError "name" [KeyString "name"] a)
     in case a of 
       (Object o) -> parse o
-      _          -> pure $ wrongType a
+      _          -> pure $ wrongType
 
 
 instance FromJSON (V [Child]) where
   parseJSON a = case a of
     (Array _) -> withArraySeqV "V [Child]" a
-    _         -> pure $ wrongType a
+    _         -> pure $ wrongType 
 
 instance FromJSON (V Parent) where
   parseJSON a =
@@ -49,14 +49,14 @@ instance FromJSON (V Parent) where
                                          children (c <> JsonError "children" [KeyString "children"] a)
     in case a of
       (Object o) -> withObject "V Parent" parse a
-      _          -> pure $ wrongType a
+      _          -> pure $ wrongType
 
 
 missingKey :: T.Text -> Value -> V a
 missingKey name a c = _Failure # [JsonKeyNotFound (JsonError name [KeyString name] a)]
 
-wrongType :: Value -> V a
-wrongType a c = _Failure # [JsonIncorrectValueType (JsonError "" [] a)]
+wrongType :: V a
+wrongType c = _Failure # [JsonIncorrectValueType c]
 
 
 retrieve rKey rObj a = (rObj .:? rKey .!= missingKey rKey a)
