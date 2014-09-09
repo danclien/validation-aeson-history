@@ -1,0 +1,39 @@
+name:                validation-aeson-history
+version:             0.1.0.0
+synopsis:            Example of using aeson and validation together with error history
+-- description:         
+homepage:            https://github.com/danclien/validation-aeson-history
+license:             MIT
+license-file:        LICENSE
+author:              Dan Lien
+maintainer:          dan@danclien.com
+-- copyright:           
+category:            Example
+build-type:          Simple
+extra-source-files:  changelog
+cabal-version:       >=1.10
+
+executable validation-aeson-example
+  main-is:             Main.hs
+  other-modules:       Models
+                       Validation
+  other-extensions:    DeriveDataTypeable, Safe, NoImplicitPrelude
+  build-depends:       base >=4.7 && <4.8
+                     , aeson
+                     , attoparsec
+                     , bytestring
+                     , lens
+                     , text
+                     , validation
+                     , vector
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+test-suite hlint
+  build-depends:    base
+                  , hlint == 1.9.*
+  default-language: Haskell2010
+  hs-source-dirs:   test
+  main-is:          HLint.hs
+  type:             exitcode-stdio-1.0
