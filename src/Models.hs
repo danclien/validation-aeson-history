@@ -4,16 +4,15 @@
 
 module Models where
 
-import Control.Applicative
-import Data.Aeson
-import Data.Semigroup
+import           Control.Applicative
+import           Data.Aeson
+import           Data.Semigroup
 import qualified Data.Text as T
-
-import Data.Validation.Historical
-import Data.Validation.Aeson
-
+import           Data.Validation.Historical
+import           Data.Validation.Aeson
 
 import Validation
+
 data Parent = Parent { parentName     :: String32
                      , parentChild    :: Child
                      , parentChildren :: [Child]
@@ -44,9 +43,7 @@ instance FromJSON (V Child) where
     (o .:: "name", ["name"])
 
 instance FromJSON (V [Child]) where
-  parseJSON a = case a of
-    (Array _) -> withArraySeqV (\i -> [T.pack $ show i]) "V [Child]" a
-    _         -> pure incorrectTypeError
+  parseJSON = parseArray incorrectTypeError (\i -> [T.pack $ show i]) "V [Child]"
 
 instance FromJSON (V Parent) where
   parseJSON = parseObject3 incorrectTypeError Parent $ \o -> 

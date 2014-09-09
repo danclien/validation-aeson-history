@@ -1,21 +1,16 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Data.Validation.Aeson where
 
-import Control.Applicative
-import Data.Aeson
+import           Control.Applicative
+import           Data.Aeson
 import qualified Data.Aeson.Types as AT
-import Data.Semigroup
-import qualified Data.Vector as V
+import           Data.Semigroup
 import qualified Data.Traversable as TR
+import           Data.Validation.Historical
+import qualified Data.Vector as V
 
-import Data.Validation.Historical
-
--- # Data.Validation.Aeson
-
--- ## Sequencing
+-- # Sequencing
 withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>
                        (Int -> env) 
                        -> String
@@ -34,7 +29,25 @@ sequenceV f xs = TR.sequenceA xs''
         xs'       = zip xs [0..]      
         xs''      = fmap g xs'
 
--- ## Parsing
+-- # Parsing Helpers (only for 1-3 parameter data constructors right now)
+
+--instance FromJSON (V [Child]) where
+--  parseJSON a = case a of
+--    (Array _) -> withArraySeqV (\i -> [T.pack $ show i]) "V [Child]" a
+--    _         -> pure incorrectTypeError
+
+parseArray ::  (FromJSON (AccValidationH env err a), Semigroup err,
+                     Semigroup env) =>
+                    AccValidationH env err [a]
+                    -> (Int -> env)
+                    -> String
+                    -> Value
+                    -> AT.Parser (AccValidationH env err [a])
+parseArray vIncorrectType f name a = case a of
+  (Array _) -> withArraySeqV f name a
+  _         -> pure vIncorrectType
+
+
 parseObject1 :: (Semigroup env, Applicative f) =>
                  AccValidationH env err a
                  -> (a1 -> a)
@@ -85,7 +98,6 @@ parseObject3 vIncorrectType mk envF a =
                                              runV i (c <> env0) <*>
                                              runV j (c <> env1) <*>
                                              runV k (c <> env2)
-
   in case a of 
     (Object o) -> parse $ envF o
     _          -> pure vIncorrectType

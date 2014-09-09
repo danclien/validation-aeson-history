@@ -1,16 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleContexts #-}
 
 module Data.Validation.Historical where
 
 import Control.Applicative
 import Control.Monad.Reader
-import Data.Validation
 import Data.Functor.Compose
-
--- # Data.Validation.Historical 
+import Data.Validation
 
 newtype AccValidationH env err a = 
   AccValidationH { getV :: Compose (Reader env) (AccValidation err) a 

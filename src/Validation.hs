@@ -2,13 +2,13 @@
 
 module Validation where
 
-import Control.Lens
-import Data.Aeson
+import           Control.Lens
+import           Data.Aeson
 import qualified Data.Aeson.Types as AT
-import Data.Validation
 import qualified Data.Text as T
+import           Data.Validation
+import           Data.Validation.Historical
 
-import Data.Validation.Historical
 
 -- # Concrete validation type
 
