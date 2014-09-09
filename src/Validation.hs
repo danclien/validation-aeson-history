@@ -6,6 +6,7 @@ module Validation where
 
 import           Control.Applicative
 import           Control.Lens ((#))
+import           Data.Semigroup
 import           Data.Aeson
 import           Data.Aeson.Encode
 import qualified Data.Aeson.Types as A
@@ -15,15 +16,30 @@ import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Traversable as TR
 import qualified Data.Vector as V
 
+
+data JsonKey = KeyString T.Text
+             | KeyIndex Int
+             deriving (Eq, Show)
+
 data JsonError = JsonNoError 
                | JsonError { key :: T.Text
+                           , path :: [JsonKey]
                            , source :: A.Value
                            }
 
+instance Semigroup JsonError where
+  a                              <> JsonNoError                    = a
+  JsonNoError                    <> b                              = b
+  (JsonError keyA pathA sourceA) <> (JsonError keyB pathB sourceB) = JsonError keyB (mappend pathA pathB) sourceB
+
+
 instance Show JsonError where
   show JsonNoError = ""
-  show (JsonError k s) = "{\r\n  key: " ++ 
-                         show k ++ ",\r\n  source: " ++
+  show (JsonError k p s) = "{\r\n  key: " ++ 
+                         show k ++ 
+                         ",\r\n  path: " ++
+                         show p ++ 
+                         ",\r\n  source: " ++
                          show (encodeViaText s) ++ 
                          "\r\n}"
     where encodeViaText = TLB.toLazyText . encodeToTextBuilder . toJSON
@@ -34,6 +50,8 @@ type V a = VHistory -> AccValidation [VError VHistory] a
  
 data VError a = MustNotBeEmpty a String
               | MustBeLessThan32Length a String
+              | JsonKeyNotFound a
+              | JsonIncorrectValueType a
               deriving (Eq, Show)
 
 -- Simple
@@ -51,7 +69,7 @@ instance FromJSON (V String32) where
 withArraySeqV s a = withArray s parse a
     where parse = fmap (sequenceV a) . mapM parseJSON . V.toList
 
-sequenceV :: Applicative f => Value -> [JsonError -> f a] -> t -> f [a]
-sequenceV a xs _ = TR.sequenceA xs'
+sequenceV :: Applicative f => Value -> [JsonError -> f a] -> VHistory -> f [a]
+sequenceV a xs c = TR.sequenceA xs'
   where is = zip xs [0..]
-        xs' = fmap (\x -> fst x (JsonError (T.pack $ show $ snd x) a)) is
+        xs' = fmap (\x -> fst x (c <> JsonError (T.pack $ show $ snd x) [KeyIndex $ snd x] a)) is

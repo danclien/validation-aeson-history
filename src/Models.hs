@@ -4,10 +4,12 @@
 module Models where
 
 import           Control.Applicative
+import           Control.Lens ((#))
 import           Data.Aeson
 import           Data.Aeson.Types (Parser)
+import           Data.Semigroup
 import qualified Data.Text as T
-
+import Data.Validation
 
 import Validation
 
@@ -20,21 +22,41 @@ data Child = Child { childName :: String32
                    } deriving (Show)
  
 instance FromJSON (V Child) where
-  parseJSON a = withObject "V Child" parse a
-    where parse o = validate <$> o .: "name"
-          validate name _ = Child <$> 
-                            name (JsonError "name" a)
+  parseJSON a = 
+    let parse o = validate <$> 
+                  retrieve "name" o a
+        validate name c = Child <$> 
+                          name (c <> JsonError "name" [KeyString "name"] a)
+    in case a of 
+      (Object o) -> parse o
+      _          -> pure $ wrongType a
+
 
 instance FromJSON (V [Child]) where
-  parseJSON = withArraySeqV "V [Child]"
+  parseJSON a = case a of
+    (Array _) -> withArraySeqV "V [Child]" a
+    _         -> pure $ wrongType a
 
 instance FromJSON (V Parent) where
-  parseJSON a = withObject "V Parent" parse a
-    where parse o = validate <$> 
-                     o .: "name" <*> 
-                     o .: "child" <*>
-                     o .: "children"
-          validate name child children _ = Parent <$> 
-                                name (JsonError "name" a)  <*> 
-                                child (JsonError "child" a) <*>
-                                children (JsonError "children" a)
+  parseJSON a =
+    let parse o = validate <$> 
+                  retrieve "name" o a <*> 
+                  retrieve "child" o a <*>
+                  retrieve "children" o a
+        validate name child children c = Parent <$> 
+                                         name (c <> JsonError "name" [KeyString "name"] a)  <*> 
+                                         child (c <> JsonError "child" [KeyString "child"] a) <*>
+                                         children (c <> JsonError "children" [KeyString "children"] a)
+    in case a of
+      (Object o) -> withObject "V Parent" parse a
+      _          -> pure $ wrongType a
+
+
+missingKey :: T.Text -> Value -> V a
+missingKey name a c = _Failure # [JsonKeyNotFound (JsonError name [KeyString name] a)]
+
+wrongType :: Value -> V a
+wrongType a c = _Failure # [JsonIncorrectValueType (JsonError "" [] a)]
+
+
+retrieve rKey rObj a = (rObj .:? rKey .!= missingKey rKey a)

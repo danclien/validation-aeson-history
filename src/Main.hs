@@ -51,6 +51,12 @@ main = do
   
   putStrLn ""
 
+  parentFailure2 <- BS.readFile "parentfailure2.json"
+  putStrLn "Parent Failure 2:"
+  printJsonResult (eitherDecodeStrict' parentFailure2 :: Either String (V Parent))
+
+  
+  putStrLn ""
 
 printJsonResult :: (Show a) => Either String (V a) -> IO ()
 printJsonResult (Left x) = putStrLn x

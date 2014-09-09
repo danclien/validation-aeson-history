@@ -13,7 +13,7 @@ build-type:          Simple
 extra-source-files:  changelog
 cabal-version:       >=1.10
 
-executable validation-aeson-example
+executable validation-aeson-history
   main-is:             Main.hs
   other-modules:       Models
                        Validation
@@ -26,6 +26,7 @@ executable validation-aeson-example
                      , text
                      , validation
                      , vector
+                     , semigroups
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
