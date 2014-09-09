@@ -19,7 +19,6 @@ withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err
 withArraySeqV f s = withArray s parse
     where parse = fmap (sequenceV f) . mapM parseJSON . V.toList
 
-
 sequenceV :: (Semigroup err, Semigroup env) =>
                    (Int -> env)
                    -> [AccValidationH env err a]
@@ -30,11 +29,6 @@ sequenceV f xs = TR.sequenceA xs''
         xs''      = fmap g xs'
 
 -- # Parsing Helpers (only for 1-3 parameter data constructors right now)
-
---instance FromJSON (V [Child]) where
---  parseJSON a = case a of
---    (Array _) -> withArraySeqV (\i -> [T.pack $ show i]) "V [Child]" a
---    _         -> pure incorrectTypeError
 
 parseArray ::  (FromJSON (AccValidationH env err a), Semigroup err,
                      Semigroup env) =>

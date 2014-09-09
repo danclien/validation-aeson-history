@@ -9,9 +9,7 @@ import qualified Data.Text as T
 import           Data.Validation
 import           Data.Validation.Historical
 
-
 -- # Concrete validation type
-
 data VError a = MustNotBeEmpty a String
               | MustBeLessThan32Length a String
               | JsonKeyNotFound a
@@ -21,7 +19,6 @@ data VError a = MustNotBeEmpty a String
 type V a = AccValidationH [T.Text] [VError [T.Text]] a
 
 -- # Concrete error types
-
 incorrectTypeError :: V a
 incorrectTypeError = asksV $ \c -> _Failure # [JsonIncorrectValueType c]
 
@@ -29,13 +26,11 @@ missingKeyError :: V a
 missingKeyError = asksV $ \c -> _Failure # [JsonKeyNotFound c]
 
 -- # Concrete helper method
-
 (.::) :: FromJSON (V a) => Object -> T.Text -> AT.Parser (V a)
 obj .:: key = obj .:? key .!= missingKeyError
 {-# INLINE (.::) #-}
 
 -- # Base types
-
 newtype String32 = String32 String deriving (Eq, Show)
 
 string32 :: String -> V String32

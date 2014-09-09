@@ -21,7 +21,7 @@ data Parent = Parent { parentName     :: String32
 data Child = Child { childName :: String32 
                    } deriving (Show)
 
--- ## Smart constructors
+-- # Smart constructors
 parent :: V String32 -> V Child -> V [Child] -> V Parent
 parent pName pChild pChildren  = asksV f
   where f c = Parent <$>
@@ -34,7 +34,7 @@ child cName = asksV f
   where f c = Child <$> 
               runV cName (c <> ["name"])
 
--- ## Aeson instances
+-- # Aeson instances
 instance FromJSON (V String32) where
   parseJSON = withText "V String32" $ \t -> pure $ string32 $ T.unpack t
 
