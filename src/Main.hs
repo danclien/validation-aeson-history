@@ -3,77 +3,38 @@
 
 import           Data.Aeson
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.Text as T
+import           Data.Validation.Historical
 
 import           Models
 import           Validation
 
 main :: IO ()
 main = do
-  putStrLn ""
+  printTest "Child Success:" "childsuccess.json"
+  -- AccFailure [JsonKeyNotFound ["child"],JsonKeyNotFound ["children"]]
 
-  childSuccess <- BS.readFile "childsuccess.json"
-  putStrLn "Child Success:"
-  printJsonResult (eitherDecodeStrict' childSuccess :: Either String (V Child))
-  -- AccSuccess (Child {childName = String32 "Sue"})
+  printTest "Child Failure:" "childfailure.json"
+  -- AccFailure [MustNotBeEmpty ["name"] "",JsonKeyNotFound ["child"],JsonKeyNotFound ["children"]]
 
-  putStrLn ""
-  childFailure <- BS.readFile "childfailure.json"
-  putStrLn "Child Failure:"
-  printJsonResult (eitherDecodeStrict' childFailure :: Either String (V Child))
-  -- AccFailure [MustNotBeEmpty {
-  --   key: "name",
-  --   path: [KeyString "name"],
-  --   source: "{\"name\":\"\",\"id\":\"childfailure\"}"
-  -- } ""]
-
-  putStrLn ""
-  parentSuccess <- BS.readFile "parentsuccess.json"
-  putStrLn "Parent Success:"
-  printJsonResult (eitherDecodeStrict' parentSuccess :: Either String (V Parent))
+  printTest "Parent Success:" "parentsuccess.json"
   -- AccSuccess (Parent {parentName = String32 "Parent Bob", parentChild = Child {childName = String32 "Sue"}, parentChildren = [Child {childName = String32 "Sue"},Child {childName = String32 "Mary"},Child {childName = String32 "Joe"}]})
 
-  putStrLn ""
-  parentFailure <- BS.readFile "parentfailure.json"
-  putStrLn "Parent Failure:"
-  printJsonResult (eitherDecodeStrict' parentFailure :: Either String (V Parent))
-  -- AccFailure [MustNotBeEmpty {
-  --   key: "name",
-  --   path: [KeyString "name"],
-  --   source: "{\"child\":{\"name\":\"\",\"id\":\"childfailure\"},\"children\":[{\"name\":\"Sue\",\"id\":\"child0\"},{\"name\":\"\",\"id\":\"child1\"},{\"name\":\"Joe\",\"id\":\"child2\"}],\"name\":\"\",\"id\":\"parentfailure\"}"
-  -- } "",MustNotBeEmpty {
-  --   key: "name",
-  --   path: [KeyString "child",KeyString "name"],
-  --   source: "{\"name\":\"\",\"id\":\"childfailure\"}"
-  -- } "",MustNotBeEmpty {
-  --   key: "name",
-  --   path: [KeyString "children",KeyIndex 1,KeyString "name"],
-  --   source: "{\"name\":\"\",\"id\":\"child1\"}"
-  -- } ""]
+  printTest "Parent Failure:" "parentfailure.json"
+  -- AccFailure [MustNotBeEmpty ["name"] "",MustNotBeEmpty ["child","name"] "",MustNotBeEmpty ["children","1","name"] ""]
 
-  putStrLn ""
-  parentFailure2 <- BS.readFile "parentfailure2.json"
-  putStrLn "Parent Failure 2:"
-  printJsonResult (eitherDecodeStrict' parentFailure2 :: Either String (V Parent))
-  -- AccFailure [MustNotBeEmpty {
-  --   key: "name",
-  --   path: [KeyString "name"],
-  --   source: "{\"children\":{},\"name\":\"\",\"id\":\"parentfailure\"}"
-  -- } "",JsonKeyNotFound {
-  --   key: "child",
-  --   path: [KeyString "child"],
-  --   source: "{\"children\":{},\"name\":\"\",\"id\":\"parentfailure\"}"
-  -- },JsonIncorrectValueType {
-  --   key: "",
-  --   path: [],
-  --   source: "{}"
-  -- }]
+  printTest "Parent Failure 2:" "parentfailure2.json"
+  -- AccFailure [MustNotBeEmpty ["name"] "",JsonKeyNotFound ["child"],JsonIncorrectValueType ["children","0"],JsonKeyNotFound ["children","1","name"]]
 
+
+printTest :: T.Text -> String -> IO ()
+printTest title filename = do
+  jsonData <- BS.readFile filename
   putStrLn ""
+  putStrLn $ T.unpack title
+  printJsonResult (eitherDecodeStrict' jsonData :: Either String (V Parent))
 
 printJsonResult :: (Show a) => Either String (V a) -> IO ()
 printJsonResult (Left x) = putStrLn x
-printJsonResult (Right x) = print $ x JsonNoError 
-   
-
-
+printJsonResult (Right x) = print $ runV x []
 

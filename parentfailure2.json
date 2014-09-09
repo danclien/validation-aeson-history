@@ -1,5 +1,8 @@
 {
   "id": "parentfailure",
   "name": "",
-  "children": {}
+  "children": [
+    [],
+    {}
+  ]
 }

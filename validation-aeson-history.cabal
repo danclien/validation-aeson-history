@@ -17,6 +17,8 @@ executable validation-aeson-history
   main-is:             Main.hs
   other-modules:       Models
                        Validation
+                       Data.Validation.Historical
+                       Data.Validation.Aeson
   other-extensions:    DeriveDataTypeable, Safe, NoImplicitPrelude
   build-depends:       base >=4.7 && <4.8
                      , aeson
@@ -28,6 +30,7 @@ executable validation-aeson-history
                      , vector
                      , semigroups
                      , mtl
+                     , transformers
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall

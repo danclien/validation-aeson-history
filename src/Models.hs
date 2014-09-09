@@ -1,18 +1,19 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Models where
 
-import           Control.Applicative
-import           Control.Lens ((#))
-import           Data.Aeson
-import           Data.Aeson.Types (Parser)
-import           Data.Semigroup
+import Control.Applicative
+import Data.Aeson
+import Data.Semigroup
 import qualified Data.Text as T
-import Data.Validation
+
+import Data.Validation.Historical
+import Data.Validation.Aeson
+
 
 import Validation
-
 data Parent = Parent { parentName     :: String32
                      , parentChild    :: Child
                      , parentChildren :: [Child]
@@ -20,43 +21,37 @@ data Parent = Parent { parentName     :: String32
  
 data Child = Child { childName :: String32 
                    } deriving (Show)
- 
-instance FromJSON (V Child) where
-  parseJSON a = 
-    let parse o = validate <$> 
-                  retrieve "name" o a
-        validate name c = Child <$> 
-                          name (c <> JsonError "name" [KeyString "name"] a)
-    in case a of 
-      (Object o) -> parse o
-      _          -> pure $ wrongType
 
+-- ## Smart constructors
+parent :: V String32 -> V Child -> V [Child] -> V Parent
+parent pName pChild pChildren  = asksV f
+  where f c = Parent <$>
+              runV pName     (c <> ["name"])     <*>
+              runV pChild    (c <> ["child"])    <*>
+              runV pChildren (c <> ["children"])
+
+child :: V String32 -> V Child
+child cName = asksV f
+  where f c = Child <$> 
+              runV cName (c <> ["name"])
+
+-- ## Aeson instances
+instance FromJSON (V String32) where
+  parseJSON = withText "V String32" $ \t -> pure $ string32 $ T.unpack t
+
+instance FromJSON (V Child) where
+  parseJSON = parseObject1 incorrectTypeError Child $ \o -> 
+    (o .:: "name", ["name"])
 
 instance FromJSON (V [Child]) where
   parseJSON a = case a of
-    (Array _) -> withArraySeqV "V [Child]" a
-    _         -> pure $ wrongType 
+    (Array _) -> withArraySeqV (\i -> [T.pack $ show i]) "V [Child]" a
+    _         -> pure incorrectTypeError
 
 instance FromJSON (V Parent) where
-  parseJSON a =
-    let parse o = validate <$> 
-                  retrieve "name" o a <*> 
-                  retrieve "child" o a <*>
-                  retrieve "children" o a
-        validate name child children c = Parent <$> 
-                                         name (c <> JsonError "name" [KeyString "name"] a)  <*> 
-                                         child (c <> JsonError "child" [KeyString "child"] a) <*>
-                                         children (c <> JsonError "children" [KeyString "children"] a)
-    in case a of
-      (Object o) -> withObject "V Parent" parse a
-      _          -> pure $ wrongType
+  parseJSON = parseObject3 incorrectTypeError Parent $ \o -> 
+    ( (o .:: "name",     ["name"]     )
+    , (o .:: "child",    ["child"]    )
+    , (o .:: "children", ["children"] )
+    )
 
-
-missingKey :: T.Text -> Value -> V a
-missingKey name a c = _Failure # [JsonKeyNotFound (JsonError name [KeyString name] a)]
-
-wrongType :: V a
-wrongType c = _Failure # [JsonIncorrectValueType c]
-
-
-retrieve rKey rObj a = (rObj .:? rKey .!= missingKey rKey a)
