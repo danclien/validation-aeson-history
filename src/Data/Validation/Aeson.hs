@@ -59,15 +59,18 @@ single :: V.Vector (AesonVEnv env) -> err -> V.Vector (AesonVError env err)
 single env err = V.singleton $ ValidationError env err
 
 
-env :: a -> V.Vector (AesonVEnv a)
-env a = V.singleton (Env a)
-
 jsonKey :: T.Text -> V.Vector (AesonVEnv a)
 jsonKey a = V.singleton (JsonKey a)
 
 jsonIndex :: Int -> V.Vector (AesonVEnv a)
 jsonIndex a = V.singleton (JsonIndex a)
 
+
+(.:>) :: AesonV env err a -> env -> AesonV env err a
+a .:> env = a .+ V.singleton (Env env)
+{-# INLINE (.:>) #-}
+
+--pName     .+ env "name"
 
 -- # JSON parsing combinators
 (.::) :: FromJSON (AesonV env err a) => Object -> T.Text -> AT.Parser (AesonV env err a)
@@ -82,6 +85,12 @@ obj .::? key = case H.lookup key obj of
                   Nothing -> pure $ pure Nothing
                   Just a  -> fmap Just <$> parseJSON a
 {-# INLINE (.::?) #-}
+
+(.:+) :: AesonV env err a -> T.Text -> AesonV env err a
+a .:+ key = a .+ jsonKey key
+{-# INLINE (.:+) #-}
+
+--(pName     .+ jsonKey "name")
 
 -- # Sequencing
 withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>

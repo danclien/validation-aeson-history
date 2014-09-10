@@ -7,7 +7,6 @@ module Models where
 import           Control.Applicative
 import           Data.Aeson
 import qualified Data.Text as T
-import           Data.Validation.Historical
 import           Data.Validation.Aeson
 
 import Validation
@@ -22,19 +21,15 @@ data Parent = Parent { parentName     :: String32
 data Child = Child { childName :: String32
                    } deriving (Show)
 
-
-
-
 -- # Smart constructors
 parent :: V String32 -> V (Maybe Child) -> V [Child] -> V Parent
 parent pName pChild pChildren = Parent <$>
-                                pName     .+ env "name"     <*>
-                                pChild    .+ env "child"    <*>
-                                pChildren .+ env "children"
+                                pName     .:> "name"     <*>
+                                pChild    .:> "child"    <*>
+                                pChildren .:> "children"
 
 child :: V String32 -> V Child
-child cName = Child <$> cName .+ env "name"
-
+child cName = Child <$> cName .:> "name"
 
 -- # Aeson instances
 instance FromJSON (V Int) where
@@ -47,7 +42,7 @@ instance FromJSON (V String32) where
 instance FromJSON (V Child) where
   parseJSON a =
     let parse o = validate <$> (o .:: "name")
-        validate cName = child (cName .+ jsonKey "name")
+        validate cName = child (cName .:+ "name")
     in case a of
       (Object o) -> parse o
       _          -> pure incorrectType
@@ -60,13 +55,13 @@ instance FromJSON (V [Child]) where
 instance FromJSON (V Parent) where
   parseJSON a =
     let parse o = validate
-                  <$> o .:: "name"
+                  <$> o .::  "name"
                   <*> o .::? "child"
                   <*> o .::  "children"
         validate pName pChild pChildren = parent
-                                          (pName     .+ jsonKey "name")
-                                          (pChild    .+ jsonKey "child")
-                                          (pChildren .+ jsonKey "children")
+                                          (pName     .:+ "name")
+                                          (pChild    .:+ "child")
+                                          (pChildren .:+ "children")
     in case a of
       (Object o) -> parse o
       _          -> pure incorrectType
