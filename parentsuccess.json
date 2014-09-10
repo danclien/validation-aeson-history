@@ -1,6 +1,7 @@
 {
   "id": "parentsuccess",
   "name": "Parent Bob",
+  "age": 30,
   "child": {
     "id": "childsuccess",    
     "name": "Sue"

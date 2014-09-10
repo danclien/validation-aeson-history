@@ -1,14 +1,68 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Data.Validation.Aeson where
 
 import           Control.Applicative
 import           Data.Aeson
 import qualified Data.Aeson.Types as AT
+import qualified Data.HashMap.Strict as H
 import           Data.Semigroup
+import           Data.Functor.Compose
+import qualified Data.Text as T
 import qualified Data.Traversable as TR
 import           Data.Validation.Historical
 import qualified Data.Vector as V
+
+
+-- #
+
+newtype ParserV env err a = 
+  ParserV { getParserV :: Compose AT.Parser (AccValidationH env err) a 
+          } deriving (Functor, Applicative) 
+
+
+-- Parser access
+
+getParser :: ParserV env err a -> AT.Parser (AccValidationH env err a)
+getParser = getCompose . getParserV
+
+liftParserV :: AT.Parser (AccValidationH env err a) -> ParserV env err a
+liftParserV = ParserV . Compose
+
+
+-- AccValidationH access
+
+
+(.:+) :: (Semigroup env) => ParserV env err a -> env -> ParserV env err a
+a .:+ env = ParserV $ Compose $ fmap (\b -> b .+ env) (getParser a)
+{-# INLINE (.:+) #-}
+
+
+--(.+) :: (Semigroup env) => AccValidationH env err a -> env -> AccValidationH env err a
+--a .+ env = localV (\c -> c <> env) a
+--{-# INLINE (.+) #-}
+
+-- # Parsing helpers
+
+withObjectV' :: a -> (Object -> AT.Parser a) -> Value -> AT.Parser a
+withObjectV' err parse a = 
+  case a of
+    (Object o) -> parse o
+    _          -> pure $ err
+
+
+-- #
+
+(.::?) :: (FromJSON (AccValidationH env err a), Semigroup err) => 
+           Object 
+           -> T.Text 
+           -> AT.Parser (AccValidationH env err (Maybe a))
+obj .::? key = case H.lookup key obj of
+                  Nothing -> pure $ pure Nothing
+                  Just a  -> fmap Just <$> parseJSON a
+{-# INLINE (.::?) #-}
 
 -- # Sequencing
 withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>
@@ -40,7 +94,6 @@ parseArray ::  (FromJSON (AccValidationH env err a), Semigroup err,
 parseArray vIncorrectType f name a = case a of
   (Array _) -> withArraySeqV f name a
   _         -> pure vIncorrectType
-
 
 parseObject1 :: (Semigroup env, Applicative f) =>
                  AccValidationH env err a
@@ -96,3 +149,26 @@ parseObject3 vIncorrectType mk envF a =
     (Object o) -> parse $ envF o
     _          -> pure vIncorrectType
 
+parseObject4 :: (Semigroup err, Semigroup env, Applicative f) =>
+                   AccValidationH env err a
+                   -> (a4 -> a3 -> a2 -> a1 -> a)
+                   -> (Object
+                       -> ((f (AccValidationH env err a4), env),
+                           (f (AccValidationH env err a3), env),
+                           (f (AccValidationH env err a2), env),
+                           (f (AccValidationH env err a1), env)))
+                   -> Value
+                   -> f (AccValidationH env err a)
+parseObject4 vIncorrectType mk envF a = 
+  let parse ((p0, env0),
+             (p1, env1),
+             (p2, env2),
+             (p3, env3)) = validate <$> p0 <*> p1 <*> p2 <*> p3
+        where validate i j k l = asksV $ \c -> mk <$>
+                                             runV i (c <> env0) <*>
+                                             runV j (c <> env1) <*>
+                                             runV k (c <> env2) <*>
+                                             runV l (c <> env3)
+  in case a of 
+    (Object o) -> parse $ envF o
+    _          -> pure vIncorrectType

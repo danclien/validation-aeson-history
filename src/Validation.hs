@@ -7,16 +7,22 @@ import           Data.Aeson
 import qualified Data.Aeson.Types as AT
 import qualified Data.Text as T
 import           Data.Validation
+import           Data.Validation.Aeson
 import           Data.Validation.Historical
 
 -- # Concrete validation type
+
+data VPath = JsonPath T.Text
+             | CustomPath T.Text
+             deriving (Eq, Show)
+
 data VError a = MustNotBeEmpty a String
               | MustBeLessThan32Length a String
               | JsonKeyNotFound a
               | JsonIncorrectValueType a
               deriving (Eq, Show)
 
-type V a = AccValidationH [T.Text] [VError [T.Text]] a
+type V a = AccValidationH [VPath] [VError [VPath]] a
 
 -- # Concrete error types
 incorrectTypeError :: V a
@@ -29,6 +35,11 @@ missingKeyError = asksV $ \c -> _Failure # [JsonKeyNotFound c]
 (.::) :: FromJSON (V a) => Object -> T.Text -> AT.Parser (V a)
 obj .:: key = obj .:? key .!= missingKeyError
 {-# INLINE (.::) #-}
+
+
+
+withObjectV = withObjectV' incorrectTypeError
+
 
 -- # Base types
 newtype String32 = String32 String deriving (Eq, Show)

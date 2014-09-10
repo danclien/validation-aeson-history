@@ -13,7 +13,7 @@ build-type:          Simple
 extra-source-files:  changelog
 cabal-version:       >=1.10
 
-executable validation-aeson-history
+executable main
   main-is:             Main.hs
   other-modules:       Models
                        Validation
@@ -31,6 +31,30 @@ executable validation-aeson-history
                      , semigroups
                      , mtl
                      , transformers
+                     , unordered-containers
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+executable v
+  main-is:             V.hs
+  other-modules:       Models
+                       Validation
+                       Data.Validation.Historical
+                       Data.Validation.Aeson
+  other-extensions:    DeriveDataTypeable, Safe, NoImplicitPrelude
+  build-depends:       base >=4.7 && <4.8
+                     , aeson
+                     , attoparsec
+                     , bytestring
+                     , lens
+                     , text
+                     , validation
+                     , vector
+                     , semigroups
+                     , mtl
+                     , transformers
+                     , unordered-containers
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
