@@ -65,9 +65,9 @@ jsonIndex :: Int -> V.Vector (AesonVEnv a)
 jsonIndex a = V.singleton (JsonIndex a)
 
 
-(.:>) :: AesonV env err a -> env -> AesonV env err a
-a .:> env = a .+ V.singleton (Env env)
-{-# INLINE (.:>) #-}
+(>:) :: AesonV env err a -> env -> AesonV env err a
+a >: env = a .+ V.singleton (Env env)
+{-# INLINE (>:) #-}
 
 -- # JSON parsing combinators
 (.::) :: FromJSON (AesonV env err a) => Object -> T.Text -> AT.Parser (AesonV env err a)
@@ -83,9 +83,9 @@ obj .::? key = case H.lookup key obj of
                   Just a  -> fmap Just <$> parseJSON a
 {-# INLINE (.::?) #-}
 
-(.:+) :: AesonV env err a -> T.Text -> AesonV env err a
-a .:+ key = a .+ jsonKey key
-{-# INLINE (.:+) #-}
+(.>:) :: AesonV env err a -> T.Text -> AesonV env err a
+a .>: key = a .+ jsonKey key
+{-# INLINE (.>:) #-}
 
 -- # Sequencing
 withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>

@@ -24,12 +24,12 @@ data Child = Child { childName :: String32
 -- # Smart constructors
 parent :: V String32 -> V (Maybe Child) -> V [Child] -> V Parent
 parent pName pChild pChildren = Parent <$>
-                                pName     .:> "name"     <*>
-                                pChild    .:> "child"    <*>
-                                pChildren .:> "children"
+                                pName     >: "name"     <*>
+                                pChild    >: "child"    <*>
+                                pChildren >: "children"
 
 child :: V String32 -> V Child
-child cName = Child <$> cName .:> "name"
+child cName = Child <$> cName >: "name"
 
 -- # Aeson instances
 instance FromJSON (V Int) where
@@ -41,8 +41,8 @@ instance FromJSON (V String32) where
 
 instance FromJSON (V Child) where
   parseJSON a =
-    let parse o = validate <$> (o .:: "name")
-        validate cName = child (cName .:+ "name")
+    let parse    o     = validate <$> (o .:: "name")
+        validate cName = child (cName .>: "name")
     in case a of
       (Object o) -> parse o
       _          -> pure incorrectType
@@ -54,9 +54,9 @@ instance FromJSON (V Parent) where
                   <*> o .::? "child"
                   <*> o .::  "children"
         validate pName pChild pChildren = parent
-                                          (pName     .:+ "name")
-                                          (pChild    .:+ "child")
-                                          (pChildren .:+ "children")
+                                          (pName     .>: "name")
+                                          (pChild    .>: "child")
+                                          (pChildren .>: "children")
     in case a of
       (Object o) -> parse o
       _          -> pure incorrectType
