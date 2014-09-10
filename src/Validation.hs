@@ -8,8 +8,7 @@ import           Data.Validation
 import           Data.Validation.Aeson
 import           Data.Validation.Historical
 
--- # Concrete validation type
-
+-- # Concrete validation types
 type VEnv = T.Text
 
 data VError = MustNotBeEmpty String
@@ -24,7 +23,7 @@ newtype String32 = String32 String deriving (Eq, Show)
 string32 :: String -> V String32
 string32 t = asksV f
   where f c
-          | null t         = _Failure # single c (MustNotBeEmpty t)
-          | length t > 32  = _Failure # single c (MustBeLessThan32Length t)
+          | null t         = _Failure # verror c (MustNotBeEmpty t)
+          | length t > 32  = _Failure # verror c (MustBeLessThan32Length t)
           | otherwise      = _Success # String32 t
 

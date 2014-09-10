@@ -49,9 +49,9 @@ a .+ env = localV (<> env) a
 {-# INLINE (.+) #-}
 
 sequenceV :: (Semigroup err, Semigroup env) =>
-                   (Int -> env)
-                   -> [AccValidationH env err a]
-                   -> AccValidationH env err [a]
+               (Int -> env)
+               -> [AccValidationH env err a]
+               -> AccValidationH env err [a]
 sequenceV f xs = TR.sequenceA xs''
   where g (va, i) = va .+ f i
         xs'       = zip xs [0..]

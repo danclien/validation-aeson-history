@@ -54,9 +54,8 @@ withObjectV parse a =
     (Object o) -> parse o
     _          -> pure incorrectType
 
-single :: V.Vector (AesonVEnv env) -> err -> V.Vector (AesonVError env err)
-single env err = V.singleton $ ValidationError env err
-
+verror :: V.Vector (AesonVEnv env) -> err -> V.Vector (AesonVError env err)
+verror env err = V.singleton $ ValidationError env err
 
 jsonKey :: T.Text -> V.Vector (AesonVEnv a)
 jsonKey a = V.singleton (JsonKey a)
@@ -89,15 +88,16 @@ a .>: key = a .+ jsonKey key
 
 -- # Sequencing
 withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>
-                       (Int -> env)
-                       -> Value
-                       -> AT.Parser (AccValidationH env err [a])
-withArraySeqV f = withArray "V []" parse
+                   (Int -> env)
+                   -> Value
+                   -> AT.Parser (AccValidationH env err [a])
+withArraySeqV f = withArray "V [a]" parse
     where parse = fmap (sequenceV f) . mapM parseJSON . V.toList
 
-
-
 -- # FromJSON instances
+instance FromJSON (AesonV env err Int) where
+  parseJSON (Number n) = (pure . pure . floor) n
+  parseJSON _          = pure incorrectType
 
 instance FromJSON (AesonV env err a) => FromJSON (AesonV env err [a]) where
   parseJSON a = case a of
