@@ -6,6 +6,7 @@ import           Data.Aeson
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.Text as T
 import           Data.Validation.Historical
+import qualified Data.Vector as V
 
 import           Models
 import           Validation
@@ -40,5 +41,5 @@ printTest title filename = do
 
 printJsonResult :: (Show a) => Either String (V a) -> IO ()
 printJsonResult (Left x) = putStrLn x
-printJsonResult (Right x) = print $ runV x []
+printJsonResult (Right x) = print $ runV x V.empty
 

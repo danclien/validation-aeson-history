@@ -17,6 +17,9 @@ import           Data.Validation.Historical
 import qualified Data.Vector as V
 
 
+instance Semigroup (V.Vector a) where
+  (<>) = mappend
+
 data AesonVEnv env  = JsonKey T.Text
                     | JsonIndex Int
                     | Env env
@@ -26,6 +29,7 @@ data AesonVError env err = AesonKeyNotFound   (V.Vector (AesonVEnv env))
                          | AesonIncorrectType (V.Vector (AesonVEnv env))
                          | ValidationError    (V.Vector (AesonVEnv env)) err
                          deriving (Eq, Show)
+
 
 type AesonV env err a = AccValidationH 
                         (V.Vector (AesonVEnv env))
@@ -39,14 +43,24 @@ incorrectType = asksV $ \c -> _Failure # (V.singleton (AesonIncorrectType c))
 missingKey :: AesonV env err a
 missingKey = asksV $ \c -> _Failure # (V.singleton $ AesonKeyNotFound c)
 
-
-withObjectV' :: a -> (Object -> AT.Parser a) -> Value -> AT.Parser a
-withObjectV' err parse a = 
+withObjectV :: Applicative f => (Object -> f (AesonV env err a)) -> Value -> f (AesonV env err a)
+withObjectV parse a = 
   case a of
     (Object o) -> parse o
-    _          -> pure $ err
+    _          -> pure incorrectType
+
+
+--single :: AccValidation env err a -> AesonV env err a
+
+single :: V.Vector (AesonVEnv env) -> err -> V.Vector (AesonVError env err)
+single env err = V.singleton $ ValidationError env err
+
+
 
 -- #
+
+obj .:: key = obj .:? key .!= missingKey
+{-# INLINE (.::) #-}
 
 (.::?) :: (FromJSON (AccValidationH env err a), Semigroup err) => 
            Object 

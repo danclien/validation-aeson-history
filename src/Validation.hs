@@ -3,8 +3,6 @@
 module Validation where
 
 import           Control.Lens
-import           Data.Aeson
-import qualified Data.Aeson.Types as AT
 import qualified Data.Text as T
 import           Data.Validation
 import           Data.Validation.Aeson
@@ -12,30 +10,13 @@ import           Data.Validation.Historical
 
 -- # Concrete validation type
 
-data MyError a = MustNotBeEmpty a String
-               | MustBeLessThan32Length a String
-               | JsonKeyNotFound a
-               | JsonIncorrectValueType a
-               deriving (Eq, Show)
+type VEnv = T.Text
 
-type V a = AccValidationH [AesonVEnv T.Text] [MyError [AesonVEnv T.Text]] a
+data VError = MustNotBeEmpty String
+            | MustBeLessThan32Length String
+            deriving (Eq, Show)
 
--- # Concrete error types
-incorrectTypeError :: V a
-incorrectTypeError = asksV $ \c -> _Failure # [JsonIncorrectValueType c]
-
-missingKeyError :: V a
-missingKeyError = asksV $ \c -> _Failure # [JsonKeyNotFound c]
-
--- # Concrete helper method
-(.::) :: FromJSON (V a) => Object -> T.Text -> AT.Parser (V a)
-obj .:: key = obj .:? key .!= missingKeyError
-{-# INLINE (.::) #-}
-
-
-
-withObjectV = withObjectV' incorrectTypeError
-
+type V a = AesonV T.Text VError a
 
 -- # Base types
 newtype String32 = String32 String deriving (Eq, Show)
@@ -43,6 +24,7 @@ newtype String32 = String32 String deriving (Eq, Show)
 string32 :: String -> V String32
 string32 t = asksV f
   where f c
-          | null t         = _Failure # [MustNotBeEmpty c t]
-          | length t > 32  = _Failure # [MustBeLessThan32Length c t]
+          | null t         = _Failure # (single c (MustNotBeEmpty t))
+          | length t > 32  = _Failure # (single c (MustBeLessThan32Length t))
           | otherwise      = _Success # String32 t
+

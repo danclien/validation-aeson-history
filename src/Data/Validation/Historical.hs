@@ -12,7 +12,8 @@ module Data.Validation.Historical
 import Control.Applicative
 import Control.Monad.Reader
 import Data.Functor.Compose
-import Data.Semigroup
+
+import           Data.Semigroup
 import Data.Validation
 
 newtype AccValidationH env err a = 
@@ -43,4 +44,5 @@ localV f m = liftReader $ local f (getReader m)
 
 (.+) :: (Semigroup env) => AccValidationH env err a -> env -> AccValidationH env err a
 a .+ env = localV (\c -> c <> env) a
+
 {-# INLINE (.+) #-}
