@@ -31,10 +31,9 @@ data AesonVError env err = AesonKeyNotFound   (V.Vector (AesonVEnv env))
                          deriving (Eq, Show)
 
 
-type AesonV env err a = AccValidationH
-                        (V.Vector (AesonVEnv env))
-                        (V.Vector (AesonVError env err))
-                        a
+type AesonV env err = AccValidationH
+                      (V.Vector (AesonVEnv env))
+                      (V.Vector (AesonVError env err))
 
 -- # Default errors
 incorrectType :: AesonV env err a
@@ -43,6 +42,23 @@ incorrectType = asksV $ \c -> _Failure # V.singleton (AesonIncorrectType c)
 missingKey :: AesonV env err a
 missingKey = asksV $ \c -> _Failure # V.singleton (AesonKeyNotFound c)
 
+-- # Reader functions inside Parser
+
+localP :: (env -> env)
+          -> AT.Parser (AccValidationH env err a)
+          -> AT.Parser (AccValidationH env err a)
+localP f = fmap (localV f)
+
+appendP :: Semigroup env =>
+             AT.Parser (AccValidationH env err a)
+             -> env
+             -> AT.Parser (AccValidationH env err a)
+appendP a env = localP (<> env) a
+
+appendJsonKeyP :: AT.Parser (AesonV env err a)
+                  -> T.Text
+                  -> AT.Parser (AesonV env err a)
+appendJsonKeyP a key = appendP a $ jsonKey key
 
 -- # Helpers
 withObjectV :: Applicative f => (Object -> f (AesonV env err a)) -> Value -> f (AesonV env err a)
@@ -66,21 +82,17 @@ a >: env = a .+ V.singleton (Env env)
 
 -- # JSON parsing combinators
 (.::) :: FromJSON (AesonV env err a) => Object -> T.Text -> AT.Parser (AesonV env err a)
-obj .:: key = obj .:? key .!= missingKey
+obj .:: key = appendJsonKeyP (obj .:? key .!= missingKey) key
 {-# INLINE (.::) #-}
 
-(.::?) :: (FromJSON (AccValidationH env err a), Semigroup err) =>
-           Object
-           -> T.Text
-           -> AT.Parser (AccValidationH env err (Maybe a))
+(.::?) :: FromJSON (AesonV env err a) =>
+            H.HashMap T.Text Value
+            -> T.Text
+            -> AT.Parser (AesonV env err (Maybe a))
 obj .::? key = case H.lookup key obj of
                   Nothing -> pure $ pure Nothing
-                  Just a  -> fmap Just <$> parseJSON a
+                  Just a  -> appendJsonKeyP (fmap Just <$> parseJSON a) key
 {-# INLINE (.::?) #-}
-
-(.>:) :: AesonV env err a -> T.Text -> AesonV env err a
-a .>: key = a .+ jsonKey key
-{-# INLINE (.>:) #-}
 
 -- # Sequencing
 withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>
@@ -88,7 +100,7 @@ withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err
                    -> Value
                    -> AT.Parser (AccValidationH env err [a])
 withArraySeqV f = withArray "V [a]" parse
-    where parse = fmap (sequenceV f) . mapM parseJSON . V.toList
+  where parse = fmap (sequenceV f) . mapM parseJSON . V.toList
 
 -- # FromJSON instances
 instance FromJSON (AesonV env err Int) where

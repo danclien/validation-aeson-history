@@ -36,16 +36,11 @@ instance FromJSON (V String32) where
 
 instance FromJSON (V Child) where
   parseJSON = withObjectV parse
-    where parse o        = validate <$> (o .:: "name")
-          validate cName = child (cName .>: "name")
+    where parse o        = child <$> (o .:: "name")
 
 instance FromJSON (V Parent) where
   parseJSON = withObjectV parse
-    where parse o = validate
+    where parse o = parent
                     <$> o .::  "name"
                     <*> o .::? "child"
                     <*> o .::  "children"
-          validate pName pChild pChildren = parent
-                                            (pName     .>: "name")
-                                            (pChild    .>: "child")
-                                            (pChildren .>: "children")

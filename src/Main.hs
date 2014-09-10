@@ -30,8 +30,6 @@ main = do
 
   return ()
 
-
-
 printTest :: (FromJSON (V a), Show a) => T.Text -> String -> IO (Either String (V a))
 printTest title filename = do
   jsonData <- BS.readFile filename

@@ -1,6 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-
 module Data.Validation.Historical
   ( AccValidationH(..)
   , asksV
