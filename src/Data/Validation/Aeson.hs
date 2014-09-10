@@ -1,6 +1,6 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Validation.Aeson where
 
@@ -16,10 +16,13 @@ import           Data.Validation
 import           Data.Validation.Historical
 import qualified Data.Vector as V
 
+-- # Instances
 
 instance Semigroup (V.Vector a) where
   (<>) = mappend
 
+
+-- # Data types
 data AesonVEnv env  = JsonKey T.Text
                     | JsonIndex Int
                     | Env env
@@ -31,40 +34,49 @@ data AesonVError env err = AesonKeyNotFound   (V.Vector (AesonVEnv env))
                          deriving (Eq, Show)
 
 
-type AesonV env err a = AccValidationH 
+type AesonV env err a = AccValidationH
                         (V.Vector (AesonVEnv env))
                         (V.Vector (AesonVError env err))
                         a
 
--- Default errors
+-- # Default errors
 incorrectType :: AesonV env err a
-incorrectType = asksV $ \c -> _Failure # (V.singleton (AesonIncorrectType c))
+incorrectType = asksV $ \c -> _Failure # V.singleton (AesonIncorrectType c)
 
 missingKey :: AesonV env err a
-missingKey = asksV $ \c -> _Failure # (V.singleton $ AesonKeyNotFound c)
+missingKey = asksV $ \c -> _Failure # V.singleton (AesonKeyNotFound c)
+
+
+-- # Helpers
 
 withObjectV :: Applicative f => (Object -> f (AesonV env err a)) -> Value -> f (AesonV env err a)
-withObjectV parse a = 
+withObjectV parse a =
   case a of
     (Object o) -> parse o
     _          -> pure incorrectType
-
-
---single :: AccValidation env err a -> AesonV env err a
 
 single :: V.Vector (AesonVEnv env) -> err -> V.Vector (AesonVError env err)
 single env err = V.singleton $ ValidationError env err
 
 
+env :: a -> V.Vector (AesonVEnv a)
+env a = V.singleton (Env a)
 
--- #
+jsonKey :: T.Text -> V.Vector (AesonVEnv a)
+jsonKey a = V.singleton (JsonKey a)
 
+jsonIndex :: Int -> V.Vector (AesonVEnv a)
+jsonIndex a = V.singleton (JsonIndex a)
+
+
+-- # JSON parsing combinators
+(.::) :: FromJSON (AesonV env err a) => Object -> T.Text -> AT.Parser (AesonV env err a)
 obj .:: key = obj .:? key .!= missingKey
 {-# INLINE (.::) #-}
 
-(.::?) :: (FromJSON (AccValidationH env err a), Semigroup err) => 
-           Object 
-           -> T.Text 
+(.::?) :: (FromJSON (AccValidationH env err a), Semigroup err) =>
+           Object
+           -> T.Text
            -> AT.Parser (AccValidationH env err (Maybe a))
 obj .::? key = case H.lookup key obj of
                   Nothing -> pure $ pure Nothing
@@ -73,9 +85,9 @@ obj .::? key = case H.lookup key obj of
 
 -- # Sequencing
 withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>
-                       (Int -> env) 
+                       (Int -> env)
                        -> String
-                       -> Value 
+                       -> Value
                        -> AT.Parser (AccValidationH env err [a])
 withArraySeqV f s = withArray s parse
     where parse = fmap (sequenceV f) . mapM parseJSON . V.toList
@@ -87,18 +99,16 @@ sequenceV :: (Semigroup err, Semigroup env) =>
 sequenceV f xs = TR.sequenceA xs''
   where g (va, i) = va .+ f i
                     --asksV $ \c -> runV va (c <> f i)
-        xs'       = zip xs [0..]      
+        xs'       = zip xs [0..]
         xs''      = fmap g xs'
 
--- # Parsing Helpers (only for 1-3 parameter data constructors right now)
-
-parseArray ::  (FromJSON (AccValidationH env err a), Semigroup err,
-                     Semigroup env) =>
-                    AccValidationH env err [a]
-                    -> (Int -> env)
-                    -> String
-                    -> Value
-                    -> AT.Parser (AccValidationH env err [a])
-parseArray vIncorrectType f name a = case a of
+parseArray :: FromJSON (AesonV env err a) =>
+                (Int -> V.Vector (AesonVEnv env))
+                -> String
+                -> Value
+                -> AT.Parser (AesonV env err [a])
+parseArray f name a = case a of
   (Array _) -> withArraySeqV f name a
-  _         -> pure vIncorrectType
+  _         -> pure incorrectType
+
+

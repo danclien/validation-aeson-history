@@ -1,10 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
-module Data.Validation.Historical 
+module Data.Validation.Historical
   ( AccValidationH(..)
   , asksV
   , runV
+  , liftV
   , localV
   , (.+)
   ) where
@@ -16,10 +17,11 @@ import Data.Functor.Compose
 import           Data.Semigroup
 import Data.Validation
 
-newtype AccValidationH env err a = 
-  AccValidationH { getV :: Compose (Reader env) (AccValidation err) a 
-                 } deriving (Functor, Applicative) 
 
+
+newtype AccValidationH env err a =
+  AccValidationH { getV :: Compose (Reader env) (AccValidation err) a
+                 } deriving (Functor, Applicative)
 
 -- Reader access
 getReader :: AccValidationH env err a -> Reader env (AccValidation err a)
@@ -43,6 +45,5 @@ localV :: (env -> env) -> AccValidationH env err a -> AccValidationH env err a
 localV f m = liftReader $ local f (getReader m)
 
 (.+) :: (Semigroup env) => AccValidationH env err a -> env -> AccValidationH env err a
-a .+ env = localV (\c -> c <> env) a
-
+a .+ env = localV (<> env) a
 {-# INLINE (.+) #-}

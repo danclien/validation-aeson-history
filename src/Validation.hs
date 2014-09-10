@@ -24,7 +24,7 @@ newtype String32 = String32 String deriving (Eq, Show)
 string32 :: String -> V String32
 string32 t = asksV f
   where f c
-          | null t         = _Failure # (single c (MustNotBeEmpty t))
-          | length t > 32  = _Failure # (single c (MustBeLessThan32Length t))
+          | null t         = _Failure # single c (MustNotBeEmpty t)
+          | length t > 32  = _Failure # single c (MustBeLessThan32Length t)
           | otherwise      = _Success # String32 t
 
