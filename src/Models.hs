@@ -25,12 +25,12 @@ data Child = Child { childName :: String32
 -- # Smart constructors
 parent :: V String32 -> V (Maybe Child) -> V [Child] -> V Parent
 parent pName pChild pChildren = Parent <$>
-                                pName .+ [CustomPath "name"] <*>                                
-                                pChild .+ [CustomPath "child"] <*>                                
-                                pChildren .+ [CustomPath "children"]
+                                pName .+ [Env "name"] <*>                                
+                                pChild .+ [Env "child"] <*>                                
+                                pChildren .+ [Env "children"]
 
 child :: V String32 -> V Child
-child cName = Child <$> cName .+ [CustomPath "name"]
+child cName = Child <$> cName .+ [Env "name"]
 
 
 -- # Aeson instances
@@ -46,14 +46,14 @@ instance FromJSON (V Child) where
     let parse o = validate 
                   <$> (o .:: "name")
         validate cName = child 
-                         (cName .+ [JsonPath $ "name"])
+                         (cName .+ [JsonKey $ "name"])
     in case a of
       (Object o) -> parse o
       _          -> pure incorrectTypeError
 
 
 instance FromJSON (V [Child]) where
-  parseJSON = parseArray incorrectTypeError (\i -> [JsonPath $ T.pack $ show i]) "V [Child]"
+  parseJSON = parseArray incorrectTypeError (\i -> [JsonIndex i]) "V [Child]"
 
 
 instance FromJSON (V Parent) where
@@ -63,9 +63,9 @@ instance FromJSON (V Parent) where
                   <*> o .::? "child"
                   <*> o .::  "children"
         validate pName pChild pChildren = parent 
-                                          (pName .+ [JsonPath $ "name"])
-                                          (pChild .+ [JsonPath $ "child"])
-                                          (pChildren .+ [JsonPath $ "children"])
+                                          (pName .+ [JsonKey $ "name"])
+                                          (pChild .+ [JsonKey $ "child"])
+                                          (pChildren .+ [JsonKey $ "children"])
     in case a of
       (Object o) -> parse o
       _          -> pure incorrectTypeError

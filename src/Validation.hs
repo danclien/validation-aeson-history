@@ -12,17 +12,13 @@ import           Data.Validation.Historical
 
 -- # Concrete validation type
 
-data VPath = JsonPath T.Text
-             | CustomPath T.Text
-             deriving (Eq, Show)
+data MyError a = MustNotBeEmpty a String
+               | MustBeLessThan32Length a String
+               | JsonKeyNotFound a
+               | JsonIncorrectValueType a
+               deriving (Eq, Show)
 
-data VError a = MustNotBeEmpty a String
-              | MustBeLessThan32Length a String
-              | JsonKeyNotFound a
-              | JsonIncorrectValueType a
-              deriving (Eq, Show)
-
-type V a = AccValidationH [VPath] [VError [VPath]] a
+type V a = AccValidationH [AesonVEnv T.Text] [MyError [AesonVEnv T.Text]] a
 
 -- # Concrete error types
 incorrectTypeError :: V a

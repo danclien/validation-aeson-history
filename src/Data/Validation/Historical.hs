@@ -1,7 +1,13 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
-module Data.Validation.Historical where
+module Data.Validation.Historical 
+  ( AccValidationH(..)
+  , asksV
+  , runV
+  , localV
+  , (.+)
+  ) where
 
 import Control.Applicative
 import Control.Monad.Reader
@@ -26,13 +32,11 @@ liftReader = AccValidationH . Compose
 runV :: AccValidationH env err a -> env -> AccValidation err a
 runV a env = flip runReader env . getReader $ a
 
-asksV :: (env -> AccValidation err a) -> AccValidationH env err a
-asksV = liftReader . asks
-
 liftV :: AccValidation err a -> AccValidationH env err a
 liftV = liftReader . pure
 
-
+asksV :: (env -> AccValidation err a) -> AccValidationH env err a
+asksV = liftReader . asks
 
 localV :: (env -> env) -> AccValidationH env err a -> AccValidationH env err a
 localV f m = liftReader $ local f (getReader m)
@@ -40,4 +44,3 @@ localV f m = liftReader $ local f (getReader m)
 (.+) :: (Semigroup env) => AccValidationH env err a -> env -> AccValidationH env err a
 a .+ env = localV (\c -> c <> env) a
 {-# INLINE (.+) #-}
-
