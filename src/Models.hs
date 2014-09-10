@@ -11,7 +11,6 @@ import           Data.Validation.Aeson
 
 import Validation
 
-
 -- # Models
 data Parent = Parent { parentName     :: String32
                      , parentChild    :: Maybe Child
@@ -32,8 +31,6 @@ child :: V String32 -> V Child
 child cName = Child <$> cName >: "name"
 
 -- # Aeson instances
-
-
 instance FromJSON (V String32) where
   parseJSON = withText "V String32" $ \t -> pure $ string32 $ T.unpack t
 

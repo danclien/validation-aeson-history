@@ -14,21 +14,23 @@ import           Validation
 main :: IO ()
 main = do
   _ <- printTest "Child Success:" "childsuccess.json" :: IO (Either String (V Child))
-  -- AccFailure [JsonKeyNotFound ["child"],JsonKeyNotFound ["children"]]
+  -- AccSuccess (Child {childName = String32 "Sue"})
 
   _ <- printTest "Child Failure:" "childfailure.json" :: IO (Either String (V Child))
-  -- AccFailure [MustNotBeEmpty ["name"] "",JsonKeyNotFound ["child"],JsonKeyNotFound ["children"]]
+  -- AccFailure (fromList [ValidationError (fromList [Env "name",JsonKey "name"]) (MustNotBeEmpty "")])
 
   _ <- printTest "Parent Success:" "parentsuccess.json" :: IO (Either String (V Parent))
-  -- AccSuccess (Parent {parentName = String32 "Parent Bob", parentChild = Child {childName = String32 "Sue"}, parentChildren = [Child {childName = String32 "Sue"},Child {childName = String32 "Mary"},Child {childName = String32 "Joe"}]})
+  -- AccSuccess (Parent {parentName = String32 "Parent Bob", parentChild = Just (Child {childName = String32 "Sue"}), parentChildren = [Child {childName = String32 "Sue"},Child {childName = String32 "Mary"},Child {childName = String32 "Joe"}]})
 
   _ <- printTest "Parent Failure:" "parentfailure.json" :: IO (Either String (V Parent))
-  -- AccFailure [MustNotBeEmpty ["name"] "",MustNotBeEmpty ["child","name"] "",MustNotBeEmpty ["children","1","name"] ""]
+  -- AccFailure (fromList [ValidationError (fromList [Env "name",JsonKey "name"]) (MustNotBeEmpty ""),ValidationError (fromList [Env "child",JsonKey "child",Env "name",JsonKey "name"]) (MustNotBeEmpty ""),ValidationError (fromList [Env "children",JsonKey "children",JsonIndex 1,Env "name",JsonKey "name"]) (MustNotBeEmpty "")])
 
   _ <- printTest "Parent Failure 2:" "parentfailure2.json" :: IO (Either String (V Parent))
-  -- AccFailure [MustNotBeEmpty ["name"] "",JsonKeyNotFound ["child"],JsonIncorrectValueType ["children","0"],JsonKeyNotFound ["children","1","name"]]
+  -- AccFailure (fromList [ValidationError (fromList [Env "name",JsonKey "name"]) (MustNotBeEmpty ""),AesonIncorrectType (fromList [Env "children",JsonKey "children",JsonIndex 0]),AesonKeyNotFound (fromList [Env "children",JsonKey "children",JsonIndex 1,Env "name",JsonKey "name"])])
 
   return ()
+
+
 
 printTest :: (FromJSON (V a), Show a) => T.Text -> String -> IO (Either String (V a))
 printTest title filename = do

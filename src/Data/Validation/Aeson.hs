@@ -16,10 +16,8 @@ import           Data.Validation.Historical
 import qualified Data.Vector as V
 
 -- # Instances
-
 instance Semigroup (V.Vector a) where
   (<>) = mappend
-
 
 -- # Data types
 data AesonVEnv env  = JsonKey T.Text
@@ -47,7 +45,6 @@ missingKey = asksV $ \c -> _Failure # V.singleton (AesonKeyNotFound c)
 
 
 -- # Helpers
-
 withObjectV :: Applicative f => (Object -> f (AesonV env err a)) -> Value -> f (AesonV env err a)
 withObjectV parse a =
   case a of
@@ -62,7 +59,6 @@ jsonKey a = V.singleton (JsonKey a)
 
 jsonIndex :: Int -> V.Vector (AesonVEnv a)
 jsonIndex a = V.singleton (JsonIndex a)
-
 
 (>:) :: AesonV env err a -> env -> AesonV env err a
 a >: env = a .+ V.singleton (Env env)
