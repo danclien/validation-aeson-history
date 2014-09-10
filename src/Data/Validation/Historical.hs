@@ -8,16 +8,16 @@ module Data.Validation.Historical
   , liftV
   , localV
   , (.+)
+  , sequenceV
   ) where
 
 import Control.Applicative
 import Control.Monad.Reader
 import Data.Functor.Compose
 
-import           Data.Semigroup
+import Data.Semigroup
 import Data.Validation
-
-
+import Data.Traversable as TR
 
 newtype AccValidationH env err a =
   AccValidationH { getV :: Compose (Reader env) (AccValidation err) a
@@ -47,3 +47,12 @@ localV f m = liftReader $ local f (getReader m)
 (.+) :: (Semigroup env) => AccValidationH env err a -> env -> AccValidationH env err a
 a .+ env = localV (<> env) a
 {-# INLINE (.+) #-}
+
+sequenceV :: (Semigroup err, Semigroup env) =>
+                   (Int -> env)
+                   -> [AccValidationH env err a]
+                   -> AccValidationH env err [a]
+sequenceV f xs = TR.sequenceA xs''
+  where g (va, i) = va .+ f i
+        xs'       = zip xs [0..]
+        xs''      = fmap g xs'

@@ -47,11 +47,6 @@ instance FromJSON (V Child) where
       (Object o) -> parse o
       _          -> pure incorrectType
 
-
-instance FromJSON (V [Child]) where
-  parseJSON = parseArray jsonIndex "V [Child]"
-
-
 instance FromJSON (V Parent) where
   parseJSON a =
     let parse o = validate

@@ -11,7 +11,6 @@ import qualified Data.Aeson.Types as AT
 import qualified Data.HashMap.Strict as H
 import           Data.Semigroup
 import qualified Data.Text as T
-import qualified Data.Traversable as TR
 import           Data.Validation
 import           Data.Validation.Historical
 import qualified Data.Vector as V
@@ -70,8 +69,6 @@ jsonIndex a = V.singleton (JsonIndex a)
 a .:> env = a .+ V.singleton (Env env)
 {-# INLINE (.:>) #-}
 
---pName     .+ env "name"
-
 -- # JSON parsing combinators
 (.::) :: FromJSON (AesonV env err a) => Object -> T.Text -> AT.Parser (AesonV env err a)
 obj .:: key = obj .:? key .!= missingKey
@@ -90,34 +87,19 @@ obj .::? key = case H.lookup key obj of
 a .:+ key = a .+ jsonKey key
 {-# INLINE (.:+) #-}
 
---(pName     .+ jsonKey "name")
-
 -- # Sequencing
 withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>
                        (Int -> env)
-                       -> String
                        -> Value
                        -> AT.Parser (AccValidationH env err [a])
-withArraySeqV f s = withArray s parse
+withArraySeqV f = withArray "V []" parse
     where parse = fmap (sequenceV f) . mapM parseJSON . V.toList
 
-sequenceV :: (Semigroup err, Semigroup env) =>
-                   (Int -> env)
-                   -> [AccValidationH env err a]
-                   -> AccValidationH env err [a]
-sequenceV f xs = TR.sequenceA xs''
-  where g (va, i) = va .+ f i
-                    --asksV $ \c -> runV va (c <> f i)
-        xs'       = zip xs [0..]
-        xs''      = fmap g xs'
-
-parseArray :: FromJSON (AesonV env err a) =>
-                (Int -> V.Vector (AesonVEnv env))
-                -> String
-                -> Value
-                -> AT.Parser (AesonV env err [a])
-parseArray f name a = case a of
-  (Array _) -> withArraySeqV f name a
-  _         -> pure incorrectType
 
 
+-- # FromJSON instances
+
+instance FromJSON (AesonV env err a) => FromJSON (AesonV env err [a]) where
+  parseJSON a = case a of
+    (Array _) -> withArraySeqV jsonIndex a
+    _         -> pure incorrectType
