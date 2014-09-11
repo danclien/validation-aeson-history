@@ -29,6 +29,7 @@ getReader = getCompose . getV
 liftReader :: Reader env (AccValidation err a) -> AccValidationH env err a
 liftReader = AccValidationH . Compose
 
+
 -- Other
 runV :: AccValidationH env err a -> env -> AccValidation err a
 runV a env = flip runReader env . getReader $ a

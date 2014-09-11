@@ -6,8 +6,8 @@ module Models where
 
 import           Control.Applicative
 import           Data.Aeson
-import qualified Data.Text as T
 import           Data.Validation.Aeson
+import           Data.Validation.Historical
 
 import Validation
 
@@ -28,7 +28,8 @@ parent pName pChild pChildren = Parent
                                 <*> pChildren >: "children"
 
 child :: V String32 -> V Child
-child cName = Child <$> cName >: "name"
+child cName = Child
+              <$> cName >: "name"
 
 -- # Aeson instances
 instance FromJSON (V Child) where
