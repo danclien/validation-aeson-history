@@ -1,8 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Validation where
 
+import           Control.Applicative
 import           Control.Lens
+import           Data.Aeson
 import qualified Data.Text as T
 import           Data.Validation
 import           Data.Validation.Aeson
@@ -27,3 +30,6 @@ string32 t = asksV f
           | length t > 32  = _Failure # verror c (MustBeLessThan32Length t)
           | otherwise      = _Success # String32 t
 
+-- # Aeson instances
+instance FromJSON (V String32) where
+  parseJSON = withText "V String32" $ \t -> pure $ string32 $ T.unpack t
