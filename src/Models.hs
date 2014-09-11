@@ -23,7 +23,7 @@ data Child = Child { childName :: String32
 -- # Smart constructors
 parent :: V String32 -> V (Maybe Child) -> V [Child] -> V Parent
 parent pName pChild pChildren = Parent
-                                <$> pName     H.>: "name"
+                                <$> pName     VA.>: "name"
                                 <*> pChild    VA.>: "child"
                                 <*> pChildren VA.>: "children"
 

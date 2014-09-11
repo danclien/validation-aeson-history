@@ -12,7 +12,7 @@ import qualified Data.HashMap.Strict as H
 import           Data.Semigroup
 import qualified Data.Text as T
 import           Data.Validation
-import           Data.Validation.Historical
+import           Data.Validation.Historical as H
 import qualified Data.Vector as V
 
 -- # Instances
@@ -77,7 +77,8 @@ jsonIndex :: Int -> V.Vector (AesonVEnv a)
 jsonIndex a = V.singleton (JsonIndex a)
 
 (>:) :: AesonV env err a -> env -> AesonV env err a
-a >: env = a <>: V.singleton (Env env)
+a >: env = a H.>: Env env
+--a >: env = a <>: V.singleton (Env env)
 {-# INLINE (>:) #-}
 
 -- # JSON parsing combinators
