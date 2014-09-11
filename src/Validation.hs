@@ -14,7 +14,7 @@ import           Data.Validation.Historical
 -- # Concrete validation types
 type VEnv = T.Text
 
-data VError = MustNotBeEmpty String
+data VError = MustNotBeEmpty
             | MustBeLessThan32Length String
             deriving (Eq, Show)
 
@@ -26,7 +26,7 @@ newtype String32 = String32 String deriving (Eq, Show)
 string32 :: String -> V String32
 string32 t = asksV f
   where f c
-          | null t         = _Failure # verror c (MustNotBeEmpty t)
+          | null t         = _Failure # verror c MustNotBeEmpty
           | length t > 32  = _Failure # verror c (MustBeLessThan32Length t)
           | otherwise      = _Success # String32 t
 

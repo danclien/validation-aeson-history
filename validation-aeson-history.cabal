@@ -1,13 +1,13 @@
 name:                validation-aeson-history
 version:             0.1.0.0
 synopsis:            Example of using aeson and validation together with error history
--- description:         
+-- description:
 homepage:            https://github.com/danclien/validation-aeson-history
 license:             MIT
 license-file:        LICENSE
 author:              Dan Lien
 maintainer:          dan@danclien.com
--- copyright:           
+-- copyright:
 category:            Example
 build-type:          Simple
 extra-source-files:  changelog
@@ -17,8 +17,9 @@ executable main
   main-is:             Main.hs
   other-modules:       Models
                        Validation
-                       Data.Validation.Historical
                        Data.Validation.Aeson
+                       Data.Validation.Historical
+                       Data.Functor.Compose.Reader
   other-extensions:    DeriveDataTypeable, Safe, NoImplicitPrelude
   build-depends:       base >=4.7 && <4.8
                      , aeson
@@ -35,6 +36,26 @@ executable main
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall
+
+executable v
+  main-is:             V.hs
+  -- other-modules:       Models
+  other-extensions:    DeriveDataTypeable, Safe, NoImplicitPrelude
+  build-depends:       base >=4.7 && <4.8
+                     , aeson
+                     , attoparsec
+                     , bytestring
+                     , lens
+                     , text
+                     , validation
+                     , vector
+                     , semigroups
+                     , mtl
+                     , transformers
+                     , unordered-containers
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
 
 test-suite hlint
   build-depends:    base

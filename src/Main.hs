@@ -10,6 +10,7 @@ import qualified Data.Vector as V
 
 import           Models
 import           Validation
+import qualified Data.Functor.Compose.Reader as FRC
 
 main :: IO ()
 main = do
