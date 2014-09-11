@@ -7,7 +7,6 @@ module Models where
 import           Control.Applicative
 import           Data.Aeson
 import           Data.Validation.Aeson as VA
-import           Data.Validation.Historical as H
 
 import Validation
 
@@ -23,9 +22,9 @@ data Child = Child { childName :: String32
 -- # Smart constructors
 parent :: V String32 -> V (Maybe Child) -> V [Child] -> V Parent
 parent pName pChild pChildren = Parent
-                                <$> pName     VA.>: "name"
-                                <*> pChild    VA.>: "child"
-                                <*> pChildren VA.>: "children"
+                                <$> pName     >: "name"
+                                <*> pChild    >: "child"
+                                <*> pChildren >: "children"
 
 child :: V String32 -> V Child
 child cName = Child

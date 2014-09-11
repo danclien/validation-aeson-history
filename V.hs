@@ -1,7 +1,6 @@
 import Control.Applicative
 import Control.Lens
 import Data.Validation
-import Data.Semigroup
 
 data VError = VError Int deriving (Eq, Show)
 

@@ -19,6 +19,11 @@ getReader = getCompose . getReaderC
 liftReader :: R.Reader r (f a) -> ReaderC r f a
 liftReader = ReaderC . Compose
 
+mapReader :: (R.Reader r (f a) -> R.Reader r (f a))
+             -> ReaderC r f a
+             -> ReaderC r f a
+mapReader f = liftReader . f . getReader
+
 -- Reader functions
 singleton :: f a -> ReaderC r f a
 singleton = liftReader . pure
@@ -26,7 +31,7 @@ singleton = liftReader . pure
 local :: (r -> r)
          -> ReaderC r f a
          -> ReaderC r f a
-local f a = liftReader $ R.local f (getReader a)
+local f = mapReader $ R.local f
 
 reader :: (r -> f a) -> ReaderC r f a
 reader = liftReader . R.asks
@@ -49,6 +54,7 @@ x <>: r = local (<> r) x
 x >: a = x <>: pure a
 {-# INLINE (>:) #-}
 
+-- Sequence
 sequenceRC :: (Applicative f) =>
   (t -> Int -> f a)
   -> [t]

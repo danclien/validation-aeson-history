@@ -30,7 +30,6 @@ data AesonVError env err = AesonKeyNotFound   (V.Vector (AesonVEnv env))
                          | ValidationError    (V.Vector (AesonVEnv env)) err
                          deriving (Eq, Show)
 
-
 type AesonV env err = AccValidationH
                       (V.Vector (AesonVEnv env))
                       (V.Vector (AesonVError env err))
@@ -78,7 +77,6 @@ jsonIndex a = V.singleton (JsonIndex a)
 
 (>:) :: AesonV env err a -> env -> AesonV env err a
 a >: env = a H.>: Env env
---a >: env = a <>: V.singleton (Env env)
 {-# INLINE (>:) #-}
 
 -- # JSON parsing combinators

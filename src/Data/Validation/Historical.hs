@@ -1,5 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module Data.Validation.Historical
   ( AccValidationH
   , module Data.Functor.Compose.Reader

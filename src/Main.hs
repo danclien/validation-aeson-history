@@ -10,7 +10,6 @@ import qualified Data.Vector as V
 
 import           Models
 import           Validation
-import qualified Data.Functor.Compose.Reader as FRC
 
 main :: IO ()
 main = do
@@ -42,5 +41,5 @@ printTest title filename = do
 
 printJsonResult :: (Show a) => Either String (V a) -> IO ()
 printJsonResult (Left x) = putStrLn x
-printJsonResult (Right x) = print $ FRC.runReader x V.empty
+printJsonResult (Right x) = print $ runReader x V.empty
 
