@@ -48,3 +48,12 @@ x <>: r = local (<> r) x
   -> ReaderC (r a) f b
 x >: a = x <>: pure a
 {-# INLINE (>:) #-}
+
+sequenceRC :: (Applicative f) =>
+  (t -> Int -> f a)
+  -> [t]
+  -> f [a]
+sequenceRC f xs = TR.sequenceA xs''
+  where xs'       = zip xs [0..]
+        xs''      = fmap g xs'
+        g (va, i) = f va i
