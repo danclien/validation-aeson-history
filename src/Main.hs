@@ -42,5 +42,5 @@ printTest title filename = do
 
 printJsonResult :: (Show a) => Either String (V a) -> IO ()
 printJsonResult (Left x) = putStrLn x
-printJsonResult (Right x) = print $ runV x V.empty
+printJsonResult (Right x) = print $ FRC.runReader x V.empty
 

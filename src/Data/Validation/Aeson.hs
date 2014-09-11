@@ -37,17 +37,17 @@ type AesonV env err = AccValidationH
 
 -- # Default errors
 incorrectType :: AesonV env err a
-incorrectType = asksV $ \c -> _Failure # V.singleton (AesonIncorrectType c)
+incorrectType = reader $ \c -> _Failure # V.singleton (AesonIncorrectType c)
 
 missingKey :: AesonV env err a
-missingKey = asksV $ \c -> _Failure # V.singleton (AesonKeyNotFound c)
+missingKey = reader $ \c -> _Failure # V.singleton (AesonKeyNotFound c)
 
 -- # Reader functions inside Parser
 
 localP :: (env -> env)
           -> AT.Parser (AccValidationH env err a)
           -> AT.Parser (AccValidationH env err a)
-localP f = fmap (localV f)
+localP f = fmap (local f)
 
 appendP :: Semigroup env =>
              AT.Parser (AccValidationH env err a)
@@ -77,7 +77,7 @@ jsonIndex :: Int -> V.Vector (AesonVEnv a)
 jsonIndex a = V.singleton (JsonIndex a)
 
 (>:) :: AesonV env err a -> env -> AesonV env err a
-a >: env = a .+ V.singleton (Env env)
+a >: env = a <>: V.singleton (Env env)
 {-# INLINE (>:) #-}
 
 -- # JSON parsing combinators
@@ -95,12 +95,13 @@ obj .::? key = case H.lookup key obj of
 {-# INLINE (.::?) #-}
 
 -- # Sequencing
-withArraySeqV :: (Semigroup err, Semigroup env, FromJSON (AccValidationH env err a)) =>
-                   (Int -> env)
-                   -> Value
-                   -> AT.Parser (AccValidationH env err [a])
+
+withArraySeqV :: (FromJSON t, Applicative f) =>
+  (t -> Int -> f a)
+  -> Value
+  -> AT.Parser (f [a])
 withArraySeqV f = withArray "V [a]" parse
-  where parse = fmap (sequenceV f) . mapM parseJSON . V.toList
+  where parse = fmap (sequenceRC f) . mapM parseJSON . V.toList
 
 -- # FromJSON instances
 instance FromJSON (AesonV env err Int) where
@@ -109,5 +110,5 @@ instance FromJSON (AesonV env err Int) where
 
 instance FromJSON (AesonV env err a) => FromJSON (AesonV env err [a]) where
   parseJSON a = case a of
-    (Array _) -> withArraySeqV jsonIndex a
+    (Array _) -> withArraySeqV (\env i -> env <>: jsonIndex i) a
     _         -> pure incorrectType

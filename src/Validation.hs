@@ -24,7 +24,7 @@ type V a = AesonV T.Text VError a
 newtype String32 = String32 String deriving (Eq, Show)
 
 string32 :: String -> V String32
-string32 t = asksV f
+string32 t = reader f
   where f c
           | null t         = _Failure # verror c (MustNotBeEmpty t)
           | length t > 32  = _Failure # verror c (MustBeLessThan32Length t)
