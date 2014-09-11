@@ -19,9 +19,7 @@ import Data.Semigroup
 import Data.Validation
 import Data.Traversable as TR
 
-newtype AccValidationH env err a =
-  AccValidationH { getV :: Compose (Reader env) (AccValidation err) a
-                 } deriving (Functor, Applicative)
+type AccValidationH env err = RC.ReaderC env (AccValidation err)
 
 -- Reader access
 getReader :: AccValidationH env err a -> Reader env (AccValidation err a)
