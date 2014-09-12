@@ -22,10 +22,3 @@ x <>:: r = liftParser $ (fmap (local (<> r)) (getParser x))
 --x <>:: r = local (<> r) x
 {-# INLINE (<>::) #-}
 
-
---(<>:) :: (Semigroup r) =>
---  ReaderC r f a
---  -> r
---  -> ReaderC r f a
---x <>: r = local (<> r) x
---{-# INLINE (<>:) #-}
