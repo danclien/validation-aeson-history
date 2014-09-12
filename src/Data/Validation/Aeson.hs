@@ -76,7 +76,7 @@ jsonIndex :: Int -> V.Vector (AesonVEnv a)
 jsonIndex a = V.singleton (JsonIndex a)
 
 (>:) :: AesonV env err a -> env -> AesonV env err a
-a >: env = a H.>: Env env
+a >: env = a *: Env env
 {-# INLINE (>:) #-}
 
 -- # JSON parsing combinators
@@ -109,5 +109,5 @@ instance FromJSON (AesonV env err Int) where
 
 instance FromJSON (AesonV env err a) => FromJSON (AesonV env err [a]) where
   parseJSON a = case a of
-    (Array _) -> withArraySeqV (\env i -> env <>: jsonIndex i) a
+    (Array _) -> withArraySeqV (\env i -> env *<> jsonIndex i) a
     _         -> pure incorrectType
