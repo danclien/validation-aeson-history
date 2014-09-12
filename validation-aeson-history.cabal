@@ -19,6 +19,8 @@ executable main
                        Validation
                        Data.Validation.Aeson
                        Data.Validation.Historical
+                       Data.Validation.Parser
+                       Data.Validation.Reader
                        Data.Functor.Compose.Reader
   other-extensions:    DeriveDataTypeable, Safe, NoImplicitPrelude
   build-depends:       base >=4.7 && <4.8

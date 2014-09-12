@@ -1,43 +1,35 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module Data.Functor.Compose.Reader where
 
 import           Control.Applicative
-import qualified Control.Monad.Reader as R
 import           Data.Functor.Compose
 import           Data.Semigroup
 import qualified Data.Traversable as TR
 
-newtype ReaderC r f a =
-  ReaderC { getReaderC :: Compose (R.Reader r) f a
-          } deriving (Functor, Applicative)
+type ReaderC r f = Compose ((->) r) f
 
 -- Reader access
-getReader :: ReaderC r f a -> R.Reader r (f a)
-getReader = getCompose . getReaderC
+getReader :: ReaderC r f a -> (r -> (f a))
+getReader = getCompose
 
-liftReader :: R.Reader r (f a) -> ReaderC r f a
-liftReader = ReaderC . Compose
+reader :: (r -> (f a)) -> ReaderC r f a
+reader = Compose
 
-mapReader :: (R.Reader r (f a) -> R.Reader r (f a))
+modifyReader :: ((r -> (f a)) -> (r -> (f a)))
              -> ReaderC r f a
              -> ReaderC r f a
-mapReader f = liftReader . f . getReader
+modifyReader f = reader . f . getReader
 
 -- Reader functions
-singleton :: f a -> ReaderC r f a
-singleton = liftReader . pure
+lift :: f a -> ReaderC r f a
+lift = reader . pure
 
 local :: (r -> r)
          -> ReaderC r f a
          -> ReaderC r f a
-local f = mapReader $ R.local f
-
-reader :: (r -> f a) -> ReaderC r f a
-reader = liftReader . R.asks
+local f m = reader $ \r -> getReader m (f r)
 
 runReader :: ReaderC r f a -> r -> f a
-runReader x r = flip R.runReader r . getReader $ x
+runReader x r = (getReader x) r
 
 -- Reader Semigroup
 (<>:) :: (Semigroup r) =>
