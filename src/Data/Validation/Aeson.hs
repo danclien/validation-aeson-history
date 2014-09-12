@@ -36,10 +36,10 @@ type AesonV env err = AccValidationH
 
 -- # Default errors
 incorrectType :: AesonV env err a
-incorrectType = reader $ \c -> _Failure # V.singleton (AesonIncorrectType c)
+incorrectType = reader $ \c -> _Failure # pure (AesonIncorrectType c)
 
 missingKey :: AesonV env err a
-missingKey = reader $ \c -> _Failure # V.singleton (AesonKeyNotFound c)
+missingKey = reader $ \c -> _Failure # pure (AesonKeyNotFound c)
 
 -- # Reader functions inside Parser
 

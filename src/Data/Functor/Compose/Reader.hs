@@ -1,5 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module Data.Functor.Compose.Reader where
 
 import           Control.Applicative
@@ -8,16 +6,14 @@ import           Data.Functor.Compose
 import           Data.Semigroup
 import qualified Data.Traversable as TR
 
-newtype ReaderC r f a =
-  ReaderC { getReaderC :: Compose (R.Reader r) f a
-          } deriving (Functor, Applicative)
+type ReaderC r f = Compose (R.Reader r) f
 
 -- Reader access
 getReader :: ReaderC r f a -> R.Reader r (f a)
-getReader = getCompose . getReaderC
+getReader = getCompose
 
 liftReader :: R.Reader r (f a) -> ReaderC r f a
-liftReader = ReaderC . Compose
+liftReader = Compose
 
 mapReader :: (R.Reader r (f a) -> R.Reader r (f a))
              -> ReaderC r f a
