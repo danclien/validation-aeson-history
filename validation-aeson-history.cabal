@@ -17,7 +17,6 @@ executable main
   main-is:             Main.hs
   other-modules:       Models
                        Validation
-                       Data.Validation.Aeson
                        Data.Validation.Historical
                        Data.Validation.Parser
                        Data.Validation.Reader
@@ -36,25 +35,6 @@ executable main
                      , transformers
                      , unordered-containers
   hs-source-dirs:      src
-  default-language:    Haskell2010
-  ghc-options:         -Wall
-
-executable v
-  main-is:             V.hs
-  -- other-modules:       Models
-  other-extensions:    DeriveDataTypeable, Safe, NoImplicitPrelude
-  build-depends:       base >=4.7 && <4.8
-                     , aeson
-                     , attoparsec
-                     , bytestring
-                     , lens
-                     , text
-                     , validation
-                     , vector
-                     , semigroups
-                     , mtl
-                     , transformers
-                     , unordered-containers
   default-language:    Haskell2010
   ghc-options:         -Wall
 

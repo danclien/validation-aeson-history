@@ -1,100 +1,101 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Data.Validation.Aeson where
 
-import           Control.Applicative
-import           Control.Lens
-import           Data.Aeson
-import qualified Data.Aeson.Types as AT
-import qualified Data.HashMap.Strict as H
-import           Data.Semigroup
-import qualified Data.Text as T
-import           Data.Validation
-import           Data.Validation.Historical as H
+import Control.Applicative
+import Control.Lens
+import Data.Functor.Compose.Reader
+import Data.Semigroup
+import Data.Validation
+import Data.Validation.Parser
+import Data.Validation.Reader
+import Data.Aeson.Types as AT
 import qualified Data.Vector as V
+import qualified Data.Text as T
+import qualified Data.HashMap.Strict as H
 
--- # Instances
+import Data.Validation.Historical
+
 instance Semigroup (V.Vector a) where
   (<>) = mappend
 
--- # Data types
-data AesonVEnv env  = JsonKey T.Text
-                    | JsonIndex Int
-                    | Env env
-                    deriving (Eq, Show)
+data AesonVLog = JsonKey T.Text
+               | JsonIndex Int
+               deriving (Eq, Show)
 
-data AesonVError env err = AesonKeyNotFound   (V.Vector (AesonVEnv env))
-                         | AesonIncorrectType (V.Vector (AesonVEnv env))
-                         | ValidationError    (V.Vector (AesonVEnv env)) err
-                         deriving (Eq, Show)
+data AesonVError = AesonKeyNotFound
+                 | AesonIncorrectType
+                 deriving (Eq, Show)
 
-type AesonV env err = AccValidationH
-                      (V.Vector (AesonVEnv env))
-                      (V.Vector (AesonVError env err))
+type V2 f g log err a = HistoricalV V.Vector f V.Vector log V.Vector g err a
+
+-- type V3 log err a = HistoricalV _ _ V.Vector log V.Vector _ err a
+
+type AesonV2 log err a =
+  HistoricalV V.Vector AesonVLog V.Vector log V.Vector AesonVError err a
 
 -- # Default errors
-incorrectType :: AesonV env err a
-incorrectType = reader $ \c -> _Failure # V.singleton (AesonIncorrectType c)
 
-missingKey :: AesonV env err a
-missingKey = reader $ \c -> _Failure # V.singleton (AesonKeyNotFound c)
+incorrectTypeError :: AesonV2 log err a
+incorrectTypeError = internalErrorH AesonIncorrectType
 
--- # Reader functions inside Parser
+keyNotFoundError :: AesonV2 log err a
+keyNotFoundError = internalErrorH AesonKeyNotFound
 
-localP :: (env -> env)
-          -> AT.Parser (AccValidationH env err a)
-          -> AT.Parser (AccValidationH env err a)
-localP f = fmap (local f)
+---- # Reader functions inside Parser
 
-appendP :: Semigroup env =>
-             AT.Parser (AccValidationH env err a)
-             -> env
-             -> AT.Parser (AccValidationH env err a)
-appendP a env = localP (<> env) a
-
-appendJsonKeyP :: AT.Parser (AesonV env err a)
+appendJsonKeyP :: Parser (AesonV2 log err a)
                   -> T.Text
-                  -> AT.Parser (AesonV env err a)
+                  -> Parser (AesonV2 log err a)
 appendJsonKeyP a key = appendP a $ jsonKey key
 
--- # Helpers
-withObjectV :: Applicative f => (Object -> f (AesonV env err a)) -> Value -> f (AesonV env err a)
+---- # Helpers
+
+withObjectV :: Applicative f =>
+  (Object -> f (AesonV2 env err a))
+  -> Value
+  -> f (AesonV2 env err a)
 withObjectV parse a =
   case a of
     (Object o) -> parse o
-    _          -> pure incorrectType
+    _          -> pure incorrectTypeError
 
-verror :: V.Vector (AesonVEnv env) -> err -> V.Vector (AesonVError env err)
-verror env err = V.singleton $ ValidationError env err
+--verror :: V.Vector (AesonVEnv env) -> err -> V.Vector (AesonVError env err)
+--verror env err = V.singleton $ ValidationError env err
 
-jsonKey :: T.Text -> V.Vector (AesonVEnv a)
-jsonKey a = V.singleton (JsonKey a)
+jsonKey :: (Monoid (g b), Applicative f) =>
+  T.Text
+  -> Log f g AesonVLog b
+jsonKey a = Log (pure (JsonKey a)) mempty
 
-jsonIndex :: Int -> V.Vector (AesonVEnv a)
-jsonIndex a = V.singleton (JsonIndex a)
+jsonIndex :: (Monoid (g b), Applicative f) =>
+  Int
+  -> Log f g AesonVLog b
+jsonIndex a = Log (pure (JsonIndex a)) mempty
 
-(>:) :: AesonV env err a -> env -> AesonV env err a
-a >: env = a *: Env env
+(>:) :: AesonV2 log err a -> log -> AesonV2 log err a
+a >: env = a *<> (Log mempty (pure env))
 {-# INLINE (>:) #-}
 
--- # JSON parsing combinators
-(.::) :: FromJSON (AesonV env err a) => Object -> T.Text -> AT.Parser (AesonV env err a)
-obj .:: key = appendJsonKeyP (obj .:? key .!= missingKey) key
+---- # JSON parsing combinators
+(.::) :: FromJSON (AesonV2 env err a) =>
+  Object
+  -> T.Text
+  -> AT.Parser (AesonV2 env err a)
+obj .:: key = appendJsonKeyP (obj .:? key .!= keyNotFoundError) key
 {-# INLINE (.::) #-}
 
-(.::?) :: FromJSON (AesonV env err a) =>
-            H.HashMap T.Text Value
-            -> T.Text
-            -> AT.Parser (AesonV env err (Maybe a))
+(.::?) :: FromJSON (AesonV2 env err a) =>
+  H.HashMap T.Text Value
+  -> T.Text
+  -> AT.Parser (AesonV2 env err (Maybe a))
 obj .::? key = case H.lookup key obj of
                   Nothing -> pure $ pure Nothing
                   Just a  -> appendJsonKeyP (fmap Just <$> parseJSON a) key
 {-# INLINE (.::?) #-}
 
--- # Sequencing
-
+---- # Sequencing
 withArraySeqV :: (FromJSON t, Applicative f) =>
   (t -> Int -> f a)
   -> Value
@@ -102,12 +103,29 @@ withArraySeqV :: (FromJSON t, Applicative f) =>
 withArraySeqV f = withArray "V [a]" parse
   where parse = fmap (sequenceRC f) . mapM parseJSON . V.toList
 
--- # FromJSON instances
-instance FromJSON (AesonV env err Int) where
+---- # FromJSON instances
+instance FromJSON (AesonV2 env err Int) where
   parseJSON (Number n) = (pure . pure . floor) n
-  parseJSON _          = pure incorrectType
+  parseJSON _          = pure incorrectTypeError
 
-instance FromJSON (AesonV env err a) => FromJSON (AesonV env err [a]) where
+instance FromJSON (AesonV2 env err a) => FromJSON (AesonV2 env err [a]) where
   parseJSON a = case a of
     (Array _) -> withArraySeqV (\env i -> env *<> jsonIndex i) a
-    _         -> pure incorrectType
+    _         -> pure incorrectTypeError
+
+
+-- ********************************************************************************
+-- Parser
+-- ********************************************************************************
+
+localP :: (log -> log)
+          -> Parser (ReaderAccValidation log err a)
+          -> Parser (ReaderAccValidation log err a)
+localP f = fmap (local f)
+
+
+appendP :: Semigroup log =>
+           Parser (ReaderAccValidation log err a)
+           -> log
+           -> Parser (ReaderAccValidation log err a)
+appendP a log = localP (<> log) a

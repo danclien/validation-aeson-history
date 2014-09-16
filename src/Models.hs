@@ -1,12 +1,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Models where
 
 import           Control.Applicative
 import           Data.Aeson
-import           Data.Validation.Aeson as VA
+import           Data.Validation.Aeson
+import           Data.Validation.Historical
 
 import Validation
 
@@ -28,15 +30,15 @@ parent pName pChild pChildren = Parent
 
 child :: V String32 -> V Child
 child cName = Child
-              <$> cName VA.>: "name"
+              <$> cName >: "name"
 
 -- # Aeson instances
-instance FromJSON (V Child) where
+instance FromJSON (VA Child) where
   parseJSON = withObjectV parse
     where parse o = child
                     <$> o .:: "name"
 
-instance FromJSON (V Parent) where
+instance FromJSON (VA Parent) where
   parseJSON = withObjectV parse
     where parse o = parent
                     <$> o .::  "name"
