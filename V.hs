@@ -1,31 +1,20 @@
-{-# LANGUAGE RankNTypes #-}
+import Control.Applicative
+import Data.Functor.Compose
 
-data Foo a b = Foo { listA :: [a]
-                   , listB :: [b]
-                   } deriving (Eq, Show)
+type MaybeMaybe a = Compose Maybe Maybe a
 
-type BarA a = forall b. (Num b, Show b) => Foo a b
-type BarB b = forall a. Foo a b
-type Bar = forall a b. Foo a b
+addM :: Maybe Int -> Maybe Int -> Maybe Int
+addM x y = (+) <$> x <*> y
 
-appendA :: BarA Int -> BarA Int
-appendA (Foo a b) = Foo (a ++ [42]) b
+-- Using (+)
+addMM :: MaybeMaybe Int -> MaybeMaybe Int -> MaybeMaybe Int
+addMM x y = (+) <$> x <*> y
 
-appendB :: BarB String -> BarB String
-appendB (Foo a b) = Foo a (b ++ ["Test"])
+-- Using addM
+addMM' :: MaybeMaybe Int -> MaybeMaybe Int -> MaybeMaybe Int
+addMM' x y = Compose $ addM <$> (getCompose x) <*> (getCompose y)
 
-appendA' :: Foo Int b -> Foo Int b
-appendA' (Foo a b) = Foo (a ++ [42]) b
-
-appendB' :: Foo a String -> Foo a String
-appendB' (Foo a b) = Foo a (b ++ ["Test"])
-
-test1 = appendA $ appendA $ Foo [32] [35]
-test2 = appendB $ appendB $ Foo [] ["Test"]
+--(Maybe Int -> Maybe Int) -> (Maybe (Maybe Int) -> Maybe (Maybe Int))
 
 
-main = do
-  let input = Foo [0] [""] :: Foo Int String
-  -- Doesn't compile:
-  --print $ appendA $ appendA $ test1
-  print $ appendB' $ appendA' $ input
+main = putStrLn "Done"

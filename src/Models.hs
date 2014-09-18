@@ -7,7 +7,9 @@ module Models where
 
 import           Control.Applicative
 import           Data.Aeson
+import           Data.Functor.Compose
 import           Data.Validation.Aeson
+import           Data.Validation.Compose
 import           Data.Validation.Historical
 
 import Validation
@@ -15,32 +17,32 @@ import Validation
 -- # Models
 data Parent = Parent { parentName     :: String32
                      , parentChild    :: Maybe Child
-                     , parentChildren :: [Child]
+                     --, parentChildren :: [Child]
                      } deriving (Eq, Show)
 
 data Child = Child { childName :: String32
                    } deriving (Eq, Show)
 
 -- # Smart constructors
-parent :: V String32 -> V (Maybe Child) -> V [Child] -> V Parent
-parent pName pChild pChildren = Parent
-                                <$> pName     >: "name"
-                                <*> pChild    >: "child"
-                                <*> pChildren >: "children"
+parent :: V String32 -> V (Maybe Child) -> V Parent
+parent pName pChild = Parent
+                                <$> pName     *<> ["name"]
+                                <*> pChild    *<> ["child"]
+                                -- <*> pChildren *<> ["children"]
 
 child :: V String32 -> V Child
 child cName = Child
-              <$> cName >: "name"
+              <$> cName *<> ["name"]
 
 -- # Aeson instances
-instance FromJSON (VA Child) where
+instance FromJSON (VP Child) where
   parseJSON = withObjectV parse
-    where parse o = child
-                    <$> o .:: "name"
+    where parse o = (liftC child) <$> o .:: "name"
 
-instance FromJSON (VA Parent) where
+instance FromJSON (VP Parent) where
   parseJSON = withObjectV parse
-    where parse o = parent
+    where parse o = (liftC2 parent)
                     <$> o .::  "name"
                     <*> o .::? "child"
-                    <*> o .::  "children"
+--                    <*> o .::  "children"
+

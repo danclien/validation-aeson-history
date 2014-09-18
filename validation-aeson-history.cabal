@@ -17,9 +17,10 @@ executable main
   main-is:             Main.hs
   other-modules:       Models
                        Validation
+                       Data.Functor.Lift
                        Data.Validation.Historical
                        Data.Validation.Parser
-                       Data.Validation.Reader
+                       Data.Validation.Compose
                        Data.Functor.Compose.Reader
   other-extensions:    DeriveDataTypeable, Safe, NoImplicitPrelude
   build-depends:       base >=4.7 && <4.8
