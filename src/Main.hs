@@ -32,7 +32,15 @@ main = do
   _ <- printTest "Parent Failure 2:" "parentfailure2.json" :: IO (Either String (VP Parent))
   -- AccFailure (fromList [ValidationError (fromList [Env "name",JsonKey "name"]) (MustNotBeEmpty ""),AesonIncorrectType (fromList [Env "children",JsonKey "children",JsonIndex 0]),AesonKeyNotFound (fromList [Env "children",JsonKey "children",JsonIndex 1,Env "name",JsonKey "name"])])
 
+  putStrLn ""
+  putStrLn ""
+  print $ runReader (child $ string32 "") mempty
+
   putStrLn "Done"
+
+--child :: V String32 -> V Child
+--child cName = Child
+--              <$> cName *<> ["name"]
 
 printTest :: (FromJSON (VP a), Show a) => T.Text -> String -> IO (Either String (VP a))
 printTest title filename = do
@@ -45,10 +53,9 @@ printTest title filename = do
 
 printJsonResult :: (Show a) => Either String (VP a) -> IO ()
 printJsonResult (Left x) = putStrLn x
-printJsonResult (Right x) = print $ "Test"
--- printJsonResult (Right x) = print $ runReader x mempty
+printJsonResult (Right x) = print $ runComposed x
 
 
+runComposed a = fmap (\x -> runReader x mempty) (runReader (unComposeHV a) mempty)
 
-test a = (runReader (unComposeHV a) mempty)
 

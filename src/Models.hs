@@ -17,18 +17,18 @@ import Validation
 -- # Models
 data Parent = Parent { parentName     :: String32
                      , parentChild    :: Maybe Child
-                     --, parentChildren :: [Child]
+                     , parentChildren :: [Child]
                      } deriving (Eq, Show)
 
 data Child = Child { childName :: String32
                    } deriving (Eq, Show)
 
 -- # Smart constructors
-parent :: V String32 -> V (Maybe Child) -> V Parent
-parent pName pChild = Parent
+parent :: V String32 -> V (Maybe Child) -> V [Child] -> V Parent
+parent pName pChild pChildren = Parent
                                 <$> pName     *<> ["name"]
                                 <*> pChild    *<> ["child"]
-                                -- <*> pChildren *<> ["children"]
+                                <*> pChildren *<> ["children"]
 
 child :: V String32 -> V Child
 child cName = Child
@@ -41,8 +41,8 @@ instance FromJSON (VP Child) where
 
 instance FromJSON (VP Parent) where
   parseJSON = withObjectV parse
-    where parse o = (liftC2 parent)
+    where parse o = (liftC3 parent)
                     <$> o .::  "name"
                     <*> o .::? "child"
---                    <*> o .::  "children"
+                    <*> o .::  "children"
 

@@ -17,6 +17,7 @@ import Data.Aeson.Types as AT
 import qualified Data.Vector as V
 import qualified Data.Text as T
 import qualified Data.HashMap.Strict as H
+import qualified Data.Traversable as TR
 
 --import Data.Validation.Historical
 
@@ -84,12 +85,6 @@ jsonIndex a = Log (pure (JsonIndex a)) mempty
 obj .:: key = appendJsonKeyP (obj .:? key .!= keyNotFoundError) key
 {-# INLINE (.::) #-}
 
---(.::?) :: FromJSON (AesonV env err a) =>
---  H.HashMap T.Text Value
---  -> T.Text
---  -> AT.Parser (AesonV env err (Maybe a))
-
-
 (.::?) :: (FromJSON (AesonV log err a), Applicative (AesonV log err)) =>
   H.HashMap T.Text Value
   -> T.Text
@@ -100,23 +95,23 @@ obj .::? key = case H.lookup key obj of
 {-# INLINE (.::?) #-}
 
 ------ # Sequencing
-withArraySeqV :: (FromJSON t, Applicative f) =>
-  (t -> Int -> f a)
+withArraySeqV :: (FromJSON (AesonV log err a), Semigroup err) =>
+  (AesonV log err a -> Int -> AesonV log err a)
   -> Value
-  -> AT.Parser (f [a])
+  -> AT.Parser (AesonV log err [a])
 withArraySeqV f = withArray "AesonV [a]" parse
   where parse = fmap (sequenceRC f) . mapM parseJSON . V.toList
 
------- # FromJSON instances
---instance FromJSON (AesonV2 env err Int) where
---  parseJSON (Number n) = (pure . pure . floor) n
---  parseJSON _          = pure incorrectTypeError
+instance (Semigroup err, FromJSON (AesonV log err a)) => FromJSON (AesonV log err [a]) where
+  parseJSON a = case a of
+    (Array _) -> withArraySeqV (\log i -> appendAesonV log (jsonIndex i)) a
+    _         -> pure incorrectTypeError
 
---instance FromJSON (AesonV log err a) => FromJSON (AesonV log err [a]) where
---  parseJSON a = case a of
---    (Array _) -> withArraySeqV (\log i -> log *<> jsonIndex i) a
---    _         -> pure incorrectTypeError
-
+appendAesonV :: (Semigroup outerLog) =>
+  ComposeHV outerLog outerError innerLog innerError a
+  -> outerLog
+  -> ComposeHV outerLog outerError innerLog innerError a
+appendAesonV x log = composeHV $ ((unComposeHV x) *<> log)
 
 ---- ********************************************************************************
 ---- Parser

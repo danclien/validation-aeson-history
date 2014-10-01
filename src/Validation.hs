@@ -19,10 +19,9 @@ import           Data.Functor.Compose
 -- # Concrete validation types
 type VEnv = T.Text
 
-data VError = MustNotBeEmpty String
-            | MustBeLessThan32Length String
+data VError = MustNotBeEmpty [T.Text]
+            | MustBeLessThan32Length [T.Text] String
             deriving (Eq, Show)
-
 
 type V a = HistoricalV [T.Text] [VError] a
 
@@ -34,16 +33,11 @@ newtype String32 = String32 String deriving (Eq, Show)
 string32 :: String -> V String32
 string32 t = reader f
   where f c
-          | null t         = _Failure # [MustNotBeEmpty t]
-          | length t > 32  = _Failure # [MustBeLessThan32Length t]
+          | null t         = _Failure # [MustNotBeEmpty c]
+          | length t > 32  = _Failure # [MustBeLessThan32Length c t]
           | otherwise      = _Success # String32 t
 
 -- # Aeson instances
 instance FromJSON (VP String32) where
   parseJSON = withText "VP String32" $ \t -> pure $
     liftInnerV $ string32 $ T.unpack t
-
-
-
-
-

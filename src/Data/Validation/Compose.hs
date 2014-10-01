@@ -28,6 +28,15 @@ liftInnerV = ComposeHV . Compose . pure
 
 localC f m = ComposeHV $ Compose $ local f (getCompose $ (getComposeHV m))
 
+-- HistoricalV outerLog outerError (HistoricalV innerLog innerError a)
+
+-- ReaderC (outerLog -> AccValidation [outerError] (ReaderC (innerLog -> AccValidation [innerError] a)))
+
+
+
+
+
+
 liftC f a1 = composeHV $
   f <$> (unComposeHV a1)
 
